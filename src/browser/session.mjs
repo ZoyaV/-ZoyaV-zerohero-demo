@@ -115,5 +115,5 @@ export function install(kind){
   return network(input,options);
  };
  // Runtime configuration is public; never store an upstream API credential here.
- window.addEventListener('zerohero-operator-config',event=>{config.operatorURL=event.detail;error='';if(pending&&operator==='ai'&&!submitted)void advise(pending.question,pending.question_id,version,revision);});
+ window.addEventListener('zerohero-operator-config',async event=>{await ready;config.operatorURL=event.detail;error='';if(pending&&operator==='ai'&&!submitted)void advise(pending.question,pending.question_id,version,revision);});
 }

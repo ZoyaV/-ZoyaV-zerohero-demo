@@ -29,7 +29,7 @@ export function createProxy({baseURL,model,apiKey='',origins=[],fetcher=fetch,al
    let size=0,chunks=[];while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>65536){await reader.cancel();return reply({error:'Request too large'},413);}chunks.push(value);}
    const bytes=new Uint8Array(size);let at=0;for(const c of chunks){bytes.set(c,at);at+=c.length;}body=JSON.parse(new TextDecoder().decode(bytes));
   }catch{return reply({error:'Invalid JSON'},400);}
-  if(!body||!SYSTEMS[body.world]||!body.context||typeof body.context.question!=='string'||!body.context.question.trim()||body.context.question.length>2000)return reply({error:'Invalid operator context'},400);
+  if(!body||!Object.hasOwn(SYSTEMS,body.world)||!body.context||typeof body.context.question!=='string'||!body.context.question.trim()||body.context.question.length>2000)return reply({error:'Invalid operator context'},400);
   inFlight++;
   try{
    const response=await fetcher(new URL('chat/completions',baseURL.endsWith('/')?baseURL:baseURL+'/'),{
