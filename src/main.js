@@ -389,7 +389,7 @@ function setStatus(status){
   if(version!==lastVersion){renderEpisode(status.episode);lastVersion=version;}
  }
  if(running){
-  $('model-status').textContent=status.episode?.pending?`Playing · turn ${status.steps+1}`:status.steps?`Playing · turn ${status.steps}`:'Loading the model…';
+  $('model-status').textContent=status.loading||(status.episode?.pending?`Playing · turn ${status.steps+1}`:status.steps?`Playing · turn ${status.steps}`:'Loading the model…');
   const action=(latestEpisode?.pending||latestEpisode?.frames.at(-2))?.action;
   $('world-status').textContent=action?(actionNames[action]||`Turn ${status.steps}`):'Preparing the model and operator';
   $('dialogue-hint').textContent='The operator’s reply will appear here when the agent asks for directions.';

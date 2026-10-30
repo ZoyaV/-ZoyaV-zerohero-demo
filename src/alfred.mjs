@@ -140,7 +140,7 @@ function update(data) {
   $('question').textContent = pending?.question || '';
   $('waiting').textContent = pending?.awaiting_human ? (data.answer_submitted ? 'Reply accepted.' : data.operator === 'ai' ? (pending.recommendation_state === 'error' ? 'AI did not respond. Switch to Human.' : 'Waiting for AI…') : 'Waiting for your reply.') : '';
   if (data.state === 'idle') $('status').textContent = 'Ready to start';
-  if (data.state === 'running') $('status').textContent = data.snapshot ? `Playing · turn ${data.snapshot.step}` : 'Loading the environment and model…';
+  if (data.state === 'running') $('status').textContent = data.loading || (data.snapshot ? `Playing · turn ${data.snapshot.step}` : 'Loading the environment and model…');
   if (data.state === 'paused') $('status').textContent = 'Game paused';
   if (data.state === 'done') $('status').textContent = data.snapshot?.success ? 'Episode finished: objective completed.' : 'Episode finished: turn limit reached.';
   if (data.snapshot) draw(data.snapshot);

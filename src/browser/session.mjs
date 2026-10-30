@@ -6,12 +6,12 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 export function install(kind){
  const network=window.fetch.bind(window),base=new URL('./',location.href),path=kind==='alfworld'?'alfworld':'craftax';
  let game,config,state='idle',runId='',revision=0,operator='ai',version=0,step=0,worker,seq=0,answerWaiter;
- let dialogue=[],transitions=[],trace=[],frames=[],pending=null,action='',error='',submitted=false;
+ let dialogue=[],transitions=[],trace=[],frames=[],pending=null,action='',error='',submitted=false,loading='';
  const ready=Promise.all([network(new URL(`data/${path}.json`,base)).then(r=>{if(!r.ok)throw Error('Environment data unavailable');return r.json();}),network(new URL('site-config.json',base)).then(r=>r.json())]).then(([data,c])=>{config=c;try{config.operatorURL=localStorage.getItem('zerohero-operator-url')||c.operatorURL;}catch{}game=kind==='alfworld'?new Alfworld(data):new Craftax(data);});
  const scene=()=>kind==='alfworld'?{episode_id:runId,renderer:'three-textworld',step,scene:'ALFWorld kitchen',...game.scene(),dialogue:dialogue.flatMap(([q,a])=>[{role:'agent',text:q},{role:'operator',text:a}]),trace:clone(trace),pending:clone(pending),request:game.data.request,action,finished:state==='done',success:game.won,model:'ZeroHero · 5M · browser'}:null;
  const currentFrame=()=>({position:[...game.position],direction:game.direction,map:game.world.map,action:'READY',question:'',answer:'',reasoning:''});
  function status(){
-  const common={state,run_id:runId,operator,operator_revision:revision,answer_submitted:submitted,max_steps:kind==='alfworld'?60:100,error:error||undefined};
+  const common={state,run_id:runId,operator,operator_revision:revision,answer_submitted:submitted,max_steps:kind==='alfworld'?60:100,error:error||undefined,loading};
   return kind==='alfworld'?{...common,snapshot:runId?scene():null}:{...common,model:'ZeroHero · 13M · browser',steps:step,episode:runId?{seed:game.world.seed,target:game.target,turns:step,questions:dialogue.length,success:game.won,frames:[...clone(frames),currentFrame()],pending:clone(pending),operator,max_steps:100}:null};
  }
  function cancel(){version++;worker?.terminate();worker=null;answerWaiter?.reject(Error('Episode reset'));answerWaiter=null;}
@@ -20,7 +20,7 @@ export function install(kind){
   const id=++seq;
   return new Promise((resolve,reject)=>{
    const w=worker;
-   const listener=event=>{if(event.data.id!==id)return;w.removeEventListener('message',listener);event.data.error?reject(Error(event.data.error)):resolve(event.data);};
+   const listener=event=>{if(event.data.id!==id)return;if(event.data.progress){loading=event.data.progress;return;}loading='';w.removeEventListener('message',listener);event.data.error?reject(Error(event.data.error)):resolve(event.data);};
    w.addEventListener('message',listener);w.addEventListener('error',e=>reject(Error(e.message)),{once:true});
    w.postMessage({id,model:path,prompt,maxNew:kind==='alfworld'?96:256,base:base.href});
   });
@@ -86,7 +86,7 @@ export function install(kind){
   if(name==='run'||name==='reset'){
    if(name==='run'&&state==='running')return new Response(JSON.stringify({error:'Game already running'}),{status:409});
    cancel();game.reset();runId=crypto.randomUUID();state='running';step=0;dialogue=[];transitions=[];frames=[];pending=null;action='';error='';submitted=false;
-   trace=kind==='alfworld'?[{observation:game.observation,after:'',action:''}]:[];
+   loading='Loading the model…';trace=kind==='alfworld'?[{observation:game.observation,after:'',action:''}]:[];
    void run(version);
   }else if(name==='pause'){if(state==='running')state='paused';}
   else if(name==='resume'){

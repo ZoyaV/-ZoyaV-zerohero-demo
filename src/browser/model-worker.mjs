@@ -7,10 +7,14 @@ self.onmessage=async({data})=>{
   env.localModelPath=new URL('models/',base).href;env.backends.onnx.wasm.wasmPaths=new URL('runtime/',base).href;
   if(!loaded||loaded.name!==name){
    if(loaded)await loaded.model.dispose();
+   self.postMessage({id,progress:'Loading tokenizer…'});
    const tokenizer=await AutoTokenizer.from_pretrained(name);
-   const model=await AutoModelForCausalLM.from_pretrained(name,{dtype:'fp32',device:'wasm'});
+   const model=await AutoModelForCausalLM.from_pretrained(name,{dtype:'fp32',device:'wasm',progress_callback:p=>{
+    self.postMessage({id,progress:p.status==='progress'?`Downloading model · ${Math.round(p.progress)}%`:'Preparing the model…'});
+   }});
    loaded={name,model,tokenizer};
   }
+  self.postMessage({id,progress:'Generating the next decision…'});
   const {tokenizer,model}=loaded;
   const budget=(name==='alfworld'?1792:2048)-maxNew;
   const tokens=tokenizer(prompt,{add_special_tokens:false,truncation:false});
