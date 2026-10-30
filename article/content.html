@@ -1,0 +1,114 @@
+<section class="research-story" id="research" aria-label="The ZeroHero research"><div class="section-label">The research</div><section id="dialogue" class="intro"><div class="slide-content">
+<h2>Can a small agent learn to talk and act?</h2>
+<figure class="visual"><div id="rlod-animation"><p>Question → reply → action.</p></div></figure>
+<p class="answer">If a task requires making decisions through dialogue, can a small model learn to generate text, choose actions, and plan both together: what should it ask to decide what to do next?</p>
+</div></section>
+<article class="paper-body" id="paper">
+<div class="paper-heading"><h2 aria-label="ZeroHero: Training Small Language Agents from Scratch">ZeroHero: Training Small Language Agents from Scratch</h2></div>
+<section id="task" class="text-slide"><h2>Task formulation</h2>
+<p>Can a small language model trained from scratch learn to use conversation as part of a decision-making strategy? We study this in <em>Reinforcement Learning with Oracle Dialogue (RLOD)</em>: the agent acts in an environment, but information needed to complete its task is available only through dialogue with an operator, or oracle.</p>
+<h3>What the agent knows and chooses</h3>
+<p>The agent receives public observations and an interaction history: what it has seen, its previous decisions, and the operator's replies. At each decision, it generates either a physical command or a natural-language question, optionally preceded by reasoning. A physical command advances the environment and produces a new observation. A question leaves the physical state unchanged and adds a reply to the history. Both use the finite decision budget.</p>
+<p>This creates two coupled planning problems: how to obtain the right information through dialogue, and how to use it to act. For example, finding a piece of bread is not enough if the agent does not know whether to heat or cool it, or where to put it. It must formulate a useful question, interpret the answer, and carry the recovered requirement into its subsequent actions.</p>
+<h3>What is hidden in each environment</h3>
+<p>In ALFWorld-Dialogue, the agent receives a shortened household request. It hides the destination, the required treatment and quantity, or all three. The original goal is also removed from observations and action history. The operator can clarify these requirements, object locations, and operation procedures. An episode permits at most 60 decisions, including no more than 50 physical steps and eight questions. Success requires satisfying the original, complete task: for example, cooling the object and placing it at the correct destination.</p>
+<p>In Craftax-Dialogue, the agent sees a symbolic local map but does not know the target location. It can move up, down, left, or right, or ask for landmark-based guidance. The operator sees the hidden target and an annotated route; the agent receives only the textual reply and must choose its own moves. It has 75 decisions to reach the target, with questions drawing from that same budget.</p>
+<h3>What is learned and evaluated</h3>
+<p>The operator remains available during evaluation through the same question-answer interface. Its privileged information is never given directly to the agent, and a model-based operator can make mistakes. This role differs from the training expert, which supplies example decisions and corrections: the expert sees the public observations and dialogue and must also ask to recover hidden requirements.</p>
+<p>For a fixed operator, the agent learns to maximize task reward over the interaction horizon. We evaluate the fraction of tasks completed within the limits above. Questions matter through their effect on later decisions: a fluent exchange is useful only if it helps the agent complete the task.</p>
+</section>
+<section id="environments" class="text-slide"><h2>Environments</h2>
+<div class="environment-grid">
+<figure class="environment-example">
+<h3>ALFWorld-Dialogue</h3>
+<img data-article-asset="alfworld-scene.png" width="888" height="888" loading="lazy" alt="An ALFWorld kitchen example: bread on the countertop.">
+<div class="environment-dialogue"><p><span>Agent</span>How should I treat the bread?</p><p><span>Operator</span>Cool it in the fridge.</p><p><span>Action</span>Goes to the fridge.</p></div>
+<figcaption>Part of the instruction is hidden. The agent clarifies it and continues the task. The kitchen frame is illustrative; the agent receives text.</figcaption>
+<a class="figure-source" href="/article/alfworld_dialogue_standard.svg" target="_blank" rel="noopener">Example from the paper ↗</a>
+</figure>
+<figure class="environment-example">
+<h3>Craftax-Dialogue</h3>
+<img data-article-asset="craftax-scene.png" width="888" height="888" loading="lazy" alt="A Craftax map from a navigation example.">
+<div class="environment-dialogue"><p><span>Agent</span>What landmark should I look for?</p><p><span>Operator</span>Go to the grass directly below you.</p><p><span>Action</span>Takes a step down.</p></div>
+<figcaption>The target location is hidden. The agent asks for a landmark and chooses a move. See the full annotated illustration below.</figcaption>
+<a class="figure-source" href="/article/craftax_navigation_dialogue.svg" target="_blank" rel="noopener">Example from the paper ↗</a>
+</figure>
+</div>
+</section>
+<section id="training" class="intro"><div class="slide-content">
+<div class="slide-copy"><h2>The BATS method: adaptively choosing between expert supervision and reward-based learning</h2><p>BATS stands for Bandit-based Adaptive Training Selection: choosing a training regime adaptively with a contextual bandit.</p><p class="answer">First, the language model learns from scratch on successful expert demonstrations. We then alternate between learning from expert corrections and from environment rewards. BATS selects the next training regime based on the agent's behavior and learning progress.</p></div>
+
+<div id="method">
+<p><strong>Pretraining.</strong> The expert solves tasks through the same interface as the future agent, taking actions and asking the operator questions. Successful episodes provide training examples. Starting from random weights, the model learns to reproduce the expert's responses: actions and questions.</p>
+<figure class="visual"><div id="method-pretrain-animation"></div></figure>
+<p><strong>Expert corrections (DAgger).</strong> The agent attempts tasks itself, and the expert labels what it should have answered in the situations it visited. These examples are mixed with previously collected data for training.</p>
+<p><strong>Learning from rewards (PPO).</strong> The agent collects new episodes in the environment and learns to choose actions and ask questions from the rewards it receives.</p>
+<div class="method-step"><h3>Measure current behavior</h3><figure class="visual"><div id="method-observe-animation"></div></figure>
+<p>Before a training block, BATS evaluates the agent on a separate control set and collects behavioral features:</p>
+<div class="method-equation" tabindex="0" role="region" aria-label="Agent behavior features before block k"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="Agent behavior features before block k"><msub><mi>x</mi><mi>k</mi></msub><mo>=</mo><msup><mrow><mo>[</mo><mn>1</mn><mo>,</mo><mi mathvariant="normal">SR</mi><mo>,</mo><msub><mi>f</mi><mtext>invalid</mtext></msub><mo>,</mo><msub><mi>f</mi><mtext>repeat</mtext></msub><mo>,</mo><mfrac><mover><mi>T</mi><mo>¯</mo></mover><mi>H</mi></mfrac><mo>,</mo><mfrac><mover><mi>Q</mi><mo>¯</mo></mover><msub><mi>Q</mi><mtext>norm</mtext></msub></mfrac><mo>]</mo></mrow><mi>⊤</mi></msup></math></div><p>Here, SR is the task success rate, <i>f</i><sub>invalid</sub>  is the rate of invalid decisions, and <i>f</i><sub>repeat</sub>  is the frequency of repeating the same observed-history–response pair on consecutive steps. Mean episode length <i>T̄</i>  is normalized by the interaction limit <i>H</i>, and the mean number of questions <i>Q̄</i>  by an environment-specific scale <i>Q</i><sub>norm</sub>. The leading constant allows the score model to include an intercept.</p></div>
+<div class="method-step"><h3>Choose DAgger or PPO</h3><figure class="visual"><div id="method-choose-animation"></div></figure>
+<p>Pretraining is followed by one PPO block and one DAgger block. LinUCB then chooses the regime <i>m</i>  with the largest sum of predicted improvement and an uncertainty bonus:</p>
+<div class="method-equation" tabindex="0" role="region" aria-label="Regime selection: predicted improvement plus uncertainty bonus"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="Regime selection: predicted improvement plus uncertainty bonus"><msub><mi>m</mi><mi>k</mi></msub><mo>=</mo><munder><mo>arg max</mo><mi>m</mi></munder><mrow><mo>[</mo><msubsup><mi>x</mi><mi>k</mi><mi>⊤</mi></msubsup><msubsup><mi>A</mi><mi>m</mi><mrow><mo>−</mo><mn>1</mn></mrow></msubsup><msub><mi>b</mi><mi>m</mi></msub><mo>+</mo><mi>α</mi><msqrt><msubsup><mi>x</mi><mi>k</mi><mi>⊤</mi></msubsup><msubsup><mi>A</mi><mi>m</mi><mrow><mo>−</mo><mn>1</mn></mrow></msubsup><msub><mi>x</mi><mi>k</mi></msub></msqrt><mo>]</mo></mrow></math></div><p>The first term predicts the improvement in success rate from the current feature vector <i>x</i><sub>k</sub>. The second gives extra weight to a regime whose effect on this agent behavior is less certain; the coefficient <i>α</i>  sets the size of this bonus. These are the two components shown as bars in the animation.</p>
+<p>Each regime maintains its own matrix <i>A</i><sub>m</sub>  and vector <i>b</i><sub>m</sub>, accumulating the relationship between agent features and observed progress. They are initialized as <i>A</i><sub>m</sub> = <i>λI</i>  and <i>b</i><sub>m</sub> = 0, where <i>I</i>  is the identity matrix and <i>λ</i>  is a regularization coefficient. The selected regime updates the shared model for two cycles.</p></div>
+<div class="method-step"><h3>Measure progress and update the estimate</h3><figure class="visual"><div id="method-update-animation"></div></figure>
+<p>After the block, the agent is evaluated on the same control tasks with the same random seeds. BATS receives the change in success rate:</p>
+<div class="method-equation" tabindex="0" role="region" aria-label="Controller signal: success rate after the block minus before"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="Controller signal: success rate after the block minus before"><msub><mi>ρ</mi><mi>k</mi></msub><mo>=</mo><msub><mi>J</mi><mtext>ctrl</mtext></msub><mo>(</mo><msub><mi>θ</mi><mrow><mi>k</mi><mo>+</mo><mn>1</mn></mrow></msub><mo>)</mo><mo>−</mo><msub><mi>J</mi><mtext>ctrl</mtext></msub><mo>(</mo><msub><mi>θ</mi><mi>k</mi></msub><mo>)</mo></math></div><p><i>θ</i><sub>k</sub>  and <i>θ</i><sub>k+1</sub>  are the agent weights before and after the block, and <i>J</i><sub>ctrl</sub>  is the control-set success rate. If it rises from 0.40 to 0.45, the controller receives <i>ρ</i><sub>k</sub> = 0.05. A decline produces a negative signal and is also recorded.</p>
+<div class="method-equation" tabindex="0" role="region" aria-label="Update statistics for the selected regime only"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="Update statistics for the selected regime only"><mtable columnalign="left" rowspacing="0.7em"><mtr><mtd><msub><mi>A</mi><msub><mi>m</mi><mi>k</mi></msub></msub><mo>←</mo><msub><mi>A</mi><msub><mi>m</mi><mi>k</mi></msub></msub><mo>+</mo><msub><mi>x</mi><mi>k</mi></msub><msubsup><mi>x</mi><mi>k</mi><mi>⊤</mi></msubsup></mtd></mtr><mtr><mtd><msub><mi>b</mi><msub><mi>m</mi><mi>k</mi></msub></msub><mo>←</mo><msub><mi>b</mi><msub><mi>m</mi><mi>k</mi></msub></msub><mo>+</mo><msub><mi>x</mi><mi>k</mi></msub><msub><mi>ρ</mi><mi>k</mi></msub></mtd></mtr></mtable></math></div><p>Only the selected regime's statistics are updated. The new behavioral assessment becomes the input to the next choice. Final test tasks are excluded from this process. The operator answers the agent's questions under both regimes; the expert supplies training responses for DAgger.</p>
+<p class="small">Equations follow the paper's Bandit-based Adaptive Training Selection section. The controller observes the outcome of the selected regime; the effect of the alternative update at that point remains unknown. Short-term improvement therefore does not guarantee the best schedule over the whole training run.</p></div>
+<p>The paper compares GPT-2-style (Classic) and Qwen3-style (Modern) architectures. Modern is used for post-training: the 5M-parameter class in ALFWorld-Dialogue and the 10M class in Craftax-Dialogue.</p>
+<p><a href="/article/bats-paper.pdf">Regime-selection diagram from the paper</a>. The curves are schematic examples. The sequence of regimes follows BATS estimates rather than a fixed schedule.</p>
+</div>
+<div class="method-step"><h3>Comparing BATS, PPO, and DAgger</h3>
+<figure class="visual"><div id="method-compare-animation"></div><figcaption>A schematic illustration of three training strategies. Experimental results follow below.</figcaption></figure></div>
+</div></section>
+<section id="results" class="text-slide"><h2>Results</h2>
+<p class="answer">Small language models trained from scratch on dialogue tasks learned to complete assignments and exceeded the large expert model's success rate. With strong initialization, BATS achieved the best mean results: 89.6% in ALFWorld-Dialogue and 66.7% in Craftax-Dialogue. The benefit of choosing between DAgger and PPO depends on the environment and the agent's competence at the start of post-training.</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Test task results"><table><caption>Test task success rate (%). Small models begin post-training from strong initialization.</caption><thead><tr><th scope="col">Model / training</th><th scope="col">ALFWorld-Dialogue</th><th scope="col">Craftax-Dialogue</th></tr></thead><tbody>
+<tr><td>Qwen3-4B · no post-training</td><td>11.9</td><td>10.9</td></tr>
+<tr><td>Qwen3-8B · no post-training</td><td>36.6</td><td>25.8</td></tr>
+<tr><td>Expert · Gemma 4 26B-A4B</td><td>67.9</td><td>61.5</td></tr>
+<tr><td>Qwen3-4B · GiGPO post-training</td><td>88.3</td><td>62.5</td></tr>
+<tr class="table-group"><th colspan="3" scope="colgroup">Small models with strong initialization</th></tr>
+<tr><td>PPO</td><td>74.4 ± 5.2</td><td>40.4 ± 3.0</td></tr>
+<tr><td>DAgger</td><td>73.9 ± 1.1</td><td>62.0 ± 4.4</td></tr>
+<tr><td>PPO + imitation</td><td>78.4 ± 2.5</td><td>39.6 ± 4.0</td></tr>
+<tr class="best"><td>BATS</td><td>89.6 ± 2.1</td><td>66.7 ± 3.5</td></tr>
+</tbody></table></div>
+<div class="result-notes">
+<p class="small results-note">Small model: Modern, 5M-parameter class for ALFWorld and 10M for Craftax. Values are means and standard deviations over three runs. Test sets contain 134 ALFWorld tasks and 512 Craftax worlds, excluded from BATS regime selection. The paper matches GPU compute budgets in the comparison with Qwen3-4B post-trained using GiGPO.</p>
+<p class="small">Source: ZeroHero paper, Experiments and Analysis sections, Test SR table. The joint-loss baseline combines PPO and imitation objectives in a single optimization step.</p>
+</div>
+</section>
+
+
+
+<section id="research-questions" class="text-slide"><h2>Analysis</h2>
+<div class="research-answers">
+<article><h3>Learning from expert trajectories</h3>
+<p>Pretraining provides a working initial policy: the model can already solve some tasks. Yet predicting expert responses more accurately does not necessarily mean acting more successfully on its own. When choosing its own actions, the agent encounters situations that may be absent from the training examples.</p>
+<p>Architecture matters. After six epochs in ALFWorld, the 5M-class Modern model solves 55.0% of validation tasks, compared with 26.7% for Classic in the same size class. In Craftax, the advantage depends on model size. Increasing parameter count with the same amount of data does not guarantee improvement either: better imitation may not transfer to independent task completion.</p>
+<p>Subsequent experiments therefore use three initialization levels: weak, medium, and strong, corresponding to different pretraining stages. Within each level, post-training methods start from identical weights and tokenizers.</p></article>
+<article><h3>Adaptive post-training</h3>
+<p>BATS shows its largest gain in ALFWorld with strong initialization: 15.2 percentage points over PPO and 15.7 over DAgger. From a weak start, PPO solves no test tasks; expert corrections bring DAgger to 64.7% and BATS to 69.9%. In this setting, the weak agent's own attempts are insufficient for successful reward-only training.</p>
+<p>With medium initialization in ALFWorld, DAgger performs better: 75.0% versus 70.9% for BATS. In Craftax, BATS has the highest mean success rate with medium and strong initialization, while DAgger wins from a weak start: 65.1% versus 60.9%. Adaptive selection does not help equally at every starting point.</p>
+<p>Individual runs reveal different training strategies. In ALFWorld, BATS uses both regimes from a weak start before switching to PPO; from a strong start, it predominantly selects PPO. In Craftax, expert corrections account for most of training. An effective allocation need not be balanced.</p>
+<p>Simply combining PPO and imitation objectives in a single loss does not reproduce BATS results. However, this comparison involves complete training procedures with different allocations of optimization steps. It does not by itself establish that the joint loss causes the performance gap.</p></article>
+<article><h3>Dialogue and task completion</h3>
+<p>In a separate analysis of ALFWorld runs, the BATS agent asks more questions, completes more tasks, and uses fewer steps per episode on average. PPO asks the fewest questions but solves fewer tasks than BATS. Question frequency alone does not determine solution quality.</p>
+<div class="table-wrap behavior-table" tabindex="0" role="region" aria-label="Agent behavior in ALFWorld"><table><caption>Behavior in individual ALFWorld runs with strong initialization. Questions and steps are episode averages.</caption><thead><tr><th scope="col">Agent</th><th scope="col">Success, %</th><th scope="col">Questions</th><th scope="col">Steps</th></tr></thead><tbody>
+<tr><td>Expert</td><td>67.9</td><td>4.43</td><td>28.02</td></tr>
+<tr><td>PPO</td><td>79.9</td><td>3.80</td><td>27.35</td></tr>
+<tr><td>DAgger</td><td>73.1</td><td>4.43</td><td>30.87</td></tr>
+<tr class="best"><td>BATS</td><td>88.1</td><td>4.89</td><td>25.19</td></tr>
+</tbody></table></div>
+<details class="table-notes"><summary>How to read these numbers</summary>
+<p class="small results-note">These are individual runs, so success rates differ from the means in the main table. Steps include questions and unsuccessful decisions; questions count accepted requests to the operator. All agents use the same operator.</p>
+<p>A lower mean step count does not mean BATS always acts faster. The average includes unsuccessful episodes that exhaust the interaction budget. On tasks solved by the expert, PPO, and BATS alike, the expert uses fewer steps. These data also do not establish how informative each individual question is.</p>
+</details></article>
+</div>
+</section>
+<section id="conclusion" class="text-slide"><h2>Conclusion</h2>
+<p>A small language model can be trained from scratch both to act and to request information needed for a decision. In ZeroHero, models in the 5–10M-parameter classes learn this combination in two specified environments, first from expert examples and then through corrections and rewards.</p>
+<p>Results depend on initialization and post-training strategy. BATS achieves the best mean results with strong initialization in both environments, but does not win under every condition. The work shows that dialogue can become part of a small agent's strategy; open-ended conversation and transfer to arbitrary tasks remain outside this evaluation.</p>
+</section>
+</article></section>

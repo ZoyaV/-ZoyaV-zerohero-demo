@@ -1,0 +1,14 @@
+{
+  "name": "zerohero-browser-demo",
+  "private": true,
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "3.8.1",
+    "@velkina/inkwell": "https://github.com/VelkinaStudio/inkwell/archive/8986176e87706f3c4097409585439e8ef5be358c.tar.gz",
+    "esbuild": "0.28.2",
+    "postprocessing": "6.37.8",
+    "three": "0.180.0"
+  }
+}
