@@ -1,3 +1,4 @@
+import {parseCraftax} from './parse.mjs';
 import {Alfworld} from './alfworld.mjs';
 import {Craftax} from './craftax.mjs';
 const clone=value=>structuredClone(value);
@@ -55,7 +56,7 @@ export function install(kind){
  }
  function parse(text){
   if(kind==='alfworld'){const xml=text.match(/<action>\s*([\s\S]*?)\s*<\/action>/i);return (xml?.[1]||text.match(/action:\s*([^\n]+)/i)?.[1]||'').trim().toLowerCase();}
-  const xml=text.match(/<action>\s*([\s\S]*?)\s*<\/action>/i);return (xml?.[1]||'NOOP').trim();
+  return parseCraftax(text)||'NOOP';
  }
  async function run(epoch){
   try{
@@ -63,7 +64,7 @@ export function install(kind){
     if(!await unpaused(epoch))return;
     const result=await generate(kind==='alfworld'?game.prompt(dialogue,transitions):game.prompt());
     if(!await unpaused(epoch))return;
-    action=parse(result.text);step++;
+    action=parse(result.text);if(kind==='craftax'&&action==='ASK_OPERATOR')action='ask Please give me directions to the hidden goal.';step++;
     const frame=kind==='craftax'?{...currentFrame(),action,reasoning:result.text,question_id:`${runId}:${step}`}:null;
     if(kind==='alfworld')trace.push({observation:game.observation,after:'',action,response:result.text});
     if(action.toLowerCase().startsWith('ask ')&&(kind==='craftax'||dialogue.length<8))await ask(action.slice(4).trim(),epoch,frame);

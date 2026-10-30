@@ -1,3 +1,4 @@
+document.querySelector('.chat-header')?.append(document.getElementById('operator-settings'));
 const input=document.getElementById('operator-endpoint'),dialog=document.getElementById('operator-dialog');
 const config=await fetch('site-config.json').then(r=>r.json());
 let stored='';try{stored=localStorage.getItem('zerohero-operator-url')||'';}catch{}

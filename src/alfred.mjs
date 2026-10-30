@@ -144,7 +144,7 @@ function update(data) {
   if (data.state === 'paused') $('status').textContent = 'Game paused';
   if (data.state === 'done') $('status').textContent = data.snapshot?.success ? 'Episode finished: objective completed.' : 'Episode finished: turn limit reached.';
   if (data.snapshot) draw(data.snapshot);
-  if (data.error) $('error').textContent = data.error;
+  $('error').textContent = data.error || '';
 }
 $('reset-game').onclick = async () => {
   if(resetting) return;
