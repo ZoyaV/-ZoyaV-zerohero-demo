@@ -10,7 +10,7 @@ self.onmessage=async({data})=>{
    self.postMessage({id,progress:'Loading tokenizer…'});
    const tokenizer=await AutoTokenizer.from_pretrained(name);
    const model=await AutoModelForCausalLM.from_pretrained(name,{dtype:'fp32',device:'wasm',progress_callback:p=>{
-    self.postMessage({id,progress:p.status==='progress'?`Downloading model · ${Math.round(p.progress)}%`:'Preparing the model…'});
+    self.postMessage({id,progress:p.status==='progress'?`Downloading model · ${Math.round(p.progress)}%`:p.status==='ready'?'Preparing the model…':'Downloading model…'});
    }});
    loaded={name,model,tokenizer};
   }
