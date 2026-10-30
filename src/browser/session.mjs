@@ -28,16 +28,16 @@ export function install(kind){
  const active=epoch=>epoch===version&&state!=='done'&&state!=='idle';
  async function unpaused(epoch){while(active(epoch)&&state==='paused')await sleep(80);return active(epoch);}
  async function advise(question,questionId,epoch,operatorRevision,attempt=0){
-  if(!config.operatorURL){error='Connect the language-model operator in Settings, or switch to Human.';return;}
+  if(!config.operatorURL){error='Connect the language-model operator in Settings, or switch to Human.';if(pending){pending.recommendation_state='error';pending.recommendation_error=error;}return;}
   try{
    const context=kind==='alfworld'?{question,intent:game.data.intent,objects:game.scene().objects,conversation:dialogue}:game.operatorContext(question);
    const response=await network(config.operatorURL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({world:kind,context}),signal:AbortSignal.timeout(90000)});
    const data=await response.json();if(!response.ok)throw Error(data.error||'Operator unavailable');
    if(!active(epoch)||pending?.question_id!==questionId)return;
    if(typeof data.answer!=='string'||!data.answer.trim())throw Error('Operator returned an empty answer');
-   pending.recommendation=data.answer.trim();pending.recommendation_state='ready';
+   pending.recommendation=data.answer.trim();pending.recommendation_state='ready';delete pending.recommendation_error;
    if(operator==='ai'&&revision===operatorRevision&&state==='running')submit({question_id:questionId,text:data.answer,operator_revision:revision},'ai');
-  }catch(e){if(active(epoch)&&pending?.question_id===questionId){pending.recommendation_state='error';error=e.message;if(attempt<3){await sleep([3000,7000,15000][attempt]);if(active(epoch)&&operator==='ai'&&revision===operatorRevision&&pending?.question_id===questionId&&!submitted){pending.recommendation_state='loading';error='';void advise(question,questionId,epoch,operatorRevision,attempt+1);}}}}
+  }catch(e){if(active(epoch)&&pending?.question_id===questionId){pending.recommendation_state='error';pending.recommendation_error=e.message;error=e.message;if(attempt<3){await sleep([3000,7000,15000][attempt]);if(active(epoch)&&operator==='ai'&&revision===operatorRevision&&pending?.question_id===questionId&&!submitted){pending.recommendation_state='loading';delete pending.recommendation_error;error='';void advise(question,questionId,epoch,operatorRevision,attempt+1);}}}}
  }
  function submit(body,source){
   if(state!=='running'||!pending||submitted||body.question_id!==pending.question_id||body.operator_revision!==revision||operator!==source||typeof body.text!=='string'||!body.text.trim()||body.text.length>4000)throw Error('Question closed, paused, or operator changed');

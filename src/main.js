@@ -158,7 +158,7 @@ function show(next,animate=false){
  path.traverse(part=>part.layers.enable(1));
  miniRoute.geometry.dispose();miniRoute.geometry=new THREE.BufferGeometry().setFromPoints(
   data.frames.map(frame=>new THREE.Vector3(frame.position[1]-7.5,3.8,frame.position[0]-7.5)));
- $('minimap').setAttribute('aria-label',`Map: agent row ${f.position[0]}, column ${f.position[1]}; goal row ${data.target[0]}, column ${data.target[1]}; facing ${{1:'left',2:'right',3:'down',4:'up'}[f.direction]||'unknown'}. Double-click to change view.`);
+ $('minimap').setAttribute('aria-label',`Map: agent row ${f.position[0]}, column ${f.position[1]}; goal row ${data.target[0]}, column ${data.target[1]}; facing ${{1:'left',2:'right',3:'up',4:'down'}[f.direction]||'unknown'}. Double-click to change view.`);
 }
 $('reset').onclick=follow;$('top').onclick=overview;
 const toggleView=()=>following?overview():follow();
@@ -371,6 +371,7 @@ function setStatus(status){
  setOperator(status.operator,status.operator_revision??operatorRevision);
  renderControls();
  const adviceError=status.episode?.pending?.recommendation_error;
+ if(!status.error&&!adviceError)$('error').hidden=true;
  if(operatorMode==='ai'&&adviceError)showError(Error(adviceError));
  if(status.model)$('agent-name').textContent=status.model==='zerohero-craftax-qwen3-13m-strong-ppo-horizon30'?'ZeroHero · 13M PPO':status.model;
  if(status.operator){const name=status.operator==='human'?'You · operator':status.operator==='flashnext'?'Qwen Flash':status.operator;$('operator-name').textContent=name;$('operator-bubble-label').textContent=name;}
