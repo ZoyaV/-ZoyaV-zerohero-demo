@@ -148,6 +148,11 @@ function update(data) {
   if (data.state === 'running') $('status').textContent = data.loading || (data.snapshot ? `Playing · turn ${data.snapshot.step}` : 'Loading the environment and model…');
   if (data.state === 'paused') $('status').textContent = 'Game paused';
   if (data.state === 'done') $('status').textContent = data.snapshot?.success ? 'Episode finished: objective completed.' : 'Episode finished: turn limit reached.';
+  const won = Boolean(data.snapshot?.success);
+  $('result').hidden = data.state !== 'done';
+  $('result').dataset.success = String(won);
+  $('result-title').textContent = won ? 'The agent completed the task' : 'The agent did not complete the task';
+  $('result-note').textContent = won ? 'The objective is done. You can start a new game.' : 'No turns left. You can start a new game.';
   if (data.snapshot) draw(data.snapshot);
   $('error').textContent = data.error || '';
 }
