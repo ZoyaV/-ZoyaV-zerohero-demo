@@ -5,7 +5,7 @@ export function chatMessages(snapshot) {
   let repeat;
   snapshot.trace.forEach((turn,index)=>{
     if (!turn.action) { repeat=null; return; }
-    if (turn.action.startsWith('ask ') && !turn.result) {
+    if (turn.action.startsWith('ask ') && (!turn.result || turn.result==='question')) {
       repeat=null;
       messages.push({role:'agent',text:turn.action.slice(4)});
       if (turn.answer) messages.push({role:'operator',text:turn.answer});

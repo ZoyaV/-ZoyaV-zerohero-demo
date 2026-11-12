@@ -35,7 +35,9 @@ export function install(kind){
  async function unpaused(epoch){while(active(epoch)&&state==='paused')await sleep(80);return active(epoch);}
  async function advise(question,questionId,epoch,operatorRevision,attempt=0){
   if(kind==='alfworld'){
-   if(!active(epoch)||pending?.question_id!==questionId)return;
+   // Presentation pacing only: the instant symbolic answer would hide the question bubble.
+   await sleep(2500);
+   if(!active(epoch)||pending?.question_id!==questionId||submitted)return;
    pending.recommendation=game.answer(question,step-1);pending.recommendation_state='ready';
    if(operator==='ai'&&revision===operatorRevision&&state==='running')submit({question_id:questionId,text:pending.recommendation,operator_revision:revision},'ai');
    return;
@@ -90,7 +92,7 @@ export function install(kind){
     if(!active(epoch))return;
     if(frame)frames.push(frame);
     if(game.won||(kind==='alfworld'&&game.moves>=50)){state='done';return;}
-    await sleep(900);
+    await sleep(kind==='alfworld'&&trace.at(-1)?.result==='question'?3000:900);
    }
    if(active(epoch))state='done';
   }catch(e){if(epoch===version){error=e.message;state='error';startup.fail(e.message);}}

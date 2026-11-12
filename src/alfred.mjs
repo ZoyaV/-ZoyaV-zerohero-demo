@@ -86,7 +86,12 @@ function draw(snapshot) {
     $('nochat').hidden = messages.length > 0;
     for (const message of messages) {
       const li = document.createElement('li'); li.className = message.role;
-      li.textContent = message.role === 'action' ? message.text : `${message.role === 'agent' ? 'Agent' : 'Operator'}: ${message.text}`;
+      if (message.role === 'action') li.textContent = message.text;
+      else {
+        const who = document.createElement('span'); who.className = 'who';
+        who.textContent = message.role === 'agent' ? 'Agent asks' : 'Operator';
+        li.append(who, message.text);
+      }
       if (message.count>1) {
         const count=document.createElement('span'); count.className='action-count';
         count.textContent=`×${message.count}`;
