@@ -117,8 +117,11 @@ export function createKitchen(canvas, toggle, hint) {
       g.userData.id=o.id;meshes.set(o.id,g);
     }
   }
+  let appliedStep=-1;
+  globalThis.sceneReady=step=>appliedStep>=step&&!route.length&&Math.hypot(target.x-robot.position.x,target.z-robot.position.z)<=.025;
   function update(snapshot){
     if(snapshot.renderer!=='three-textworld')return;
+    appliedStep=snapshot.step;
     toggle.disabled=false;toggle.setAttribute('aria-label','Switch between room overview and following the robot');
     toggle.setAttribute('aria-pressed',String(following));hint.textContent=following?'Room overview':'Follow robot';
     const question=snapshot.action?.startsWith('ask ')&&!snapshot.trace?.at(-1)?.result?(snapshot.pending?.question||snapshot.action.slice(4)):'';

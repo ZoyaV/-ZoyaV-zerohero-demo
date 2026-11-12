@@ -91,6 +91,8 @@ export function install(kind){
     }
     if(!active(epoch))return;
     if(frame)frames.push(frame);
+    // Let the 3D robot finish walking so chat and scene stay in sync; capped for hidden tabs.
+    for(const until=Date.now()+15000;globalThis.sceneReady&&!globalThis.sceneReady(step)&&Date.now()<until&&active(epoch);)await sleep(100);
     if(game.won||(kind==='alfworld'&&game.moves>=50)){state='done';return;}
     await sleep(kind==='alfworld'&&trace.at(-1)?.result==='question'?3000:900);
    }
