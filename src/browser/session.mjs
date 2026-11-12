@@ -4,11 +4,12 @@ import {Alfworld} from './alfworld.mjs';
 import {Craftax} from './craftax.mjs';
 const clone=value=>structuredClone(value);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const ALFWORLD_SCENES=10;
 export function install(kind){
  const startup=window.zeroheroStartup||createStartupLoader();
  startup.show();
  const network=window.fetch.bind(window),base=new URL('./',location.href),path=kind==='alfworld'?'alfworld':'craftax';
- let generating=false;
+ let generating=false,sceneIndex=0;
  let game,config,state='idle',runId='',revision=0,operator='ai',version=0,step=0,worker,seq=0,answerWaiter;
  let dialogue=[],transitions=[],trace=[],frames=[],pending=null,action='',error='',submitted=false,loading='';
  const ready=Promise.all([network(new URL(`data/${path}.json`,base)).then(r=>{if(!r.ok)throw Error('Environment data unavailable');return r.json();}),network(new URL('site-config.json',base)).then(r=>r.json())]).then(([data,c])=>{config=c;try{config.operatorURL=localStorage.getItem('zerohero-operator-url')||c.operatorURL;}catch{}game=kind==='alfworld'?new Alfworld(data):new Craftax(data);});
@@ -102,6 +103,12 @@ export function install(kind){
  async function command(name,body){
   if(name==='run'||name==='reset'){
    if(name==='run'&&state==='running')return new Response(JSON.stringify({error:'Game already running'}),{status:409});
+   // data/alfworld.json is shown first; later episodes draw from data/alfworld-1..9.json.
+   if(kind==='alfworld'&&runId){
+    let next;do next=Math.floor(Math.random()*ALFWORLD_SCENES);while(next===sceneIndex);
+    const r=await network(new URL(`data/${next?`alfworld-${next}`:'alfworld'}.json`,base));if(!r.ok)throw Error('Environment data unavailable');
+    const data=await r.json();sceneIndex=next;game=new Alfworld(data);
+   }
    cancel();game.reset();runId=crypto.randomUUID();state='running';step=0;dialogue=[];transitions=[];frames=[];pending=null;action='';error='';submitted=false;
    loading=worker?'Generating the next decision…':'Loading the model…';trace=kind==='alfworld'?[{observation:game.observation,after:'',action:''}]:[];
    void run(version);
