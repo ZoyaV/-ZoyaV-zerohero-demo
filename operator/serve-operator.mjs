@@ -6,7 +6,7 @@ const handle=createProxy({baseURL:process.env.OPERATOR_BASE_URL||'http://127.0.0
 http.createServer(async(req,res)=>{
  try{
   const request=new Request(`http://127.0.0.1:${port}${req.url}`,{method:req.method,headers:req.headers,...(['GET','HEAD'].includes(req.method)?{}:{body:req,duplex:'half'})});
-  const result=await handle(request,req.headers['cf-connecting-ip']||req.socket.remoteAddress);
+  const result=await handle(request,req.headers['cf-connecting-ip']||req.headers['x-forwarded-for']?.split(',')[0].trim()||req.socket.remoteAddress);
   res.writeHead(result.status,Object.fromEntries(result.headers));res.end(Buffer.from(await result.arrayBuffer()));
  }catch{res.writeHead(400,{'Content-Type':'application/json'});res.end('{"error":"Invalid request"}');}
-}).listen(port,'127.0.0.1',()=>console.log(`Operator proxy http://127.0.0.1:${port}/reply`));
+}).listen(port,process.env.HOST||'127.0.0.1',()=>console.log(`Operator proxy http://${process.env.HOST||'127.0.0.1'}:${port}/reply`));

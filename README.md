@@ -18,7 +18,7 @@ verify.html compares six real browser-generated token sequences with frozen PyTo
 
 ## Operator hosting
 
-site-config.json contains only a public endpoint. operator/ contains a bounded proxy for an OpenAI-compatible language-model service: fixed model/system prompts, origin allowlist, request-size/rate/concurrency limits, and server-side credentials. The current demonstration endpoint uses a temporary Cloudflare Quick Tunnel to the existing operator connection. It requires the operator host and tunnel to stay running; it is not a permanent production endpoint. Replace operatorURL with a durable deployment when available.
+site-config.json contains only a public endpoint. operator/ contains a bounded proxy for an OpenAI-compatible language-model service: fixed model/system prompts, origin allowlist, request-size/rate/concurrency limits, and server-side credentials. The demonstration endpoint is the Hugging Face Space Zoya/zerohero-operator (CPU basic), built from operator/ (Dockerfile and Space README included). It calls Qwen/Qwen3.8-Flash-Next-FP8 through Hugging Face Inference Providers; the token is the Space secret OPERATOR_API_KEY. A CPU basic Space sleeps after 48 hours without requests, so the first answer after that can take about 30 seconds.
 
 Node: OPERATOR_BASE_URL, OPERATOR_MODEL, OPERATOR_API_KEY, OPERATOR_ORIGINS and PORT configure node operator/serve-operator.mjs. Defaults connect to the existing loopback operator port.
 
