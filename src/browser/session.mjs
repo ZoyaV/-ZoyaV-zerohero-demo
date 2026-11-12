@@ -1,5 +1,5 @@
 import {createStartupLoader} from './loading-screen.mjs';
-import {parseCraftax} from './parse.mjs';
+import {parseCraftax,parseAlfworld} from './parse.mjs';
 import {Alfworld} from './alfworld.mjs';
 import {Craftax} from './craftax.mjs';
 const clone=value=>structuredClone(value);
@@ -34,6 +34,12 @@ export function install(kind){
  const active=epoch=>epoch===version&&state!=='done'&&state!=='idle';
  async function unpaused(epoch){while(active(epoch)&&state==='paused')await sleep(80);return active(epoch);}
  async function advise(question,questionId,epoch,operatorRevision,attempt=0){
+  if(kind==='alfworld'){
+   if(!active(epoch)||pending?.question_id!==questionId)return;
+   pending.recommendation=game.answer(question,step-1);pending.recommendation_state='ready';
+   if(operator==='ai'&&revision===operatorRevision&&state==='running')submit({question_id:questionId,text:pending.recommendation,operator_revision:revision},'ai');
+   return;
+  }
   if(!config.operatorURL){error='Connect the language-model operator in Settings, or switch to Human.';if(pending){pending.recommendation_state='error';pending.recommendation_error=error;}return;}
   try{
    const context=kind==='alfworld'?{question,intent:game.data.intent,objects:game.scene().objects,conversation:dialogue}:game.operatorContext(question);
@@ -61,22 +67,23 @@ export function install(kind){
   pending=null;answerWaiter=null;submitted=false;error='';return answer;
  }
  function parse(text){
-  if(kind==='alfworld'){const xml=text.match(/<action>\s*([\s\S]*?)\s*<\/action>/i);return (xml?.[1]||text.match(/action:\s*([^\n]+)/i)?.[1]||'').trim().toLowerCase();}
+  if(kind==='alfworld')return parseAlfworld(text)||'';
   return parseCraftax(text)||'NOOP';
  }
  async function run(epoch){
   try{
    while(active(epoch)&&step<(kind==='alfworld'?60:100)){
     if(!await unpaused(epoch))return;
-    const result=await generate(kind==='alfworld'?game.prompt(dialogue,transitions):game.prompt());
+    const previous=kind==='alfworld'&&trace.length>1?trace.at(-1):null;
+    const result=await generate(kind==='alfworld'?game.prompts(dialogue,transitions,previous):game.prompt());
     if(!await unpaused(epoch))return;
     action=parse(result.text);if(kind==='craftax'&&action==='ASK_OPERATOR')action='ask Please give me directions to the hidden goal.';step++;
     const frame=kind==='craftax'?{...currentFrame(),action,reasoning:result.text,question_id:`${runId}:${step}`}:null;
     if(kind==='alfworld')trace.push({observation:game.observation,after:'',action,response:result.text});
-    if(action.toLowerCase().startsWith('ask ')&&(kind==='craftax'||dialogue.length<8))await ask(action.slice(4).trim(),epoch,frame);
+    if(action.toLowerCase().startsWith('ask ')&&(kind==='craftax'||dialogue.length<8)){await ask(action.slice(4).trim(),epoch,frame);if(kind==='alfworld')trace.at(-1).result='question';}
     else if(kind==='alfworld'){
-     if(game.commands().includes(action)){const observation=game.step(action);transitions.push([action,observation]);trace.at(-1).after=observation;}
-     else trace.at(-1).result=action.startsWith('ask ')?'budget_exhausted':'inadmissible';
+     if(game.commands().includes(action)){const observation=game.step(action);transitions.push([action,observation]);Object.assign(trace.at(-1),{after:observation,result:'executed'});}
+     else trace.at(-1).result=!action?'unparseable':action.startsWith('ask ')?'budget_exhausted':'inadmissible';
     }else{
      const move=action.toUpperCase().replace(/^MOVE_/,'');game.step(['LEFT','RIGHT','UP','DOWN','NOOP'].includes(move)?move:'NOOP');
     }
@@ -125,7 +132,7 @@ export function install(kind){
  async function prepare(){
   try{
    await ready;state='loading';
-   const result=await generate(kind==='alfworld'?game.prompt([],[]):game.prompt());
+   const result=await generate(kind==='alfworld'?game.prompts([],[],null):game.prompt());
    const firstAction=parse(result.text);
    if(kind==='alfworld'){
     if(game.commands().includes(firstAction))game.step(firstAction);

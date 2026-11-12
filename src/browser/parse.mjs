@@ -6,6 +6,15 @@ export function parseOriginal(text){
  const value=raw.replace(/\s+/g,' ').trim();if(!value)return null;
  return /^[a-z_]+$/i.test(value)?value.toUpperCase():value;
 }
+// Match ZeroHero_iclr2027 zerohero/alfworld_standard_v5.parse_action: exactly one explicit marker.
+export function parseAlfworld(text){
+ const markers=[...text.matchAll(/(?<!\w)(?:action\s*:|<action>)/gi)];if(markers.length!==1)return null;
+ const m=markers[0],rest=text.slice(m.index+m[0].length);let action;
+ if(m[0].toLowerCase()==='<action>'){const end=rest.search(/<\/action>/i);if(end<0)return null;action=rest.slice(0,end).trim();if(action.includes('\n'))return null;}
+ else action=(rest.replace(/^[ \t]+/,'').split(/\r?\n/)[0]||'').trim();
+ if(!action)return null;
+ return action.trim().toLowerCase().replace(/[.,]+$/,'').replace(/\s+/g,' ').replace(/^(?:an?|the)\s+/,'');
+}
 export function parseCraftax(text){
  const original=parseOriginal(text);if(original!==null)return original;
  const questions=[...text.matchAll(/<question>\s*([^<]*?)\s*<\/question>/gis)].map(m=>m[1].replace(/\s+/g,' ').trim()).filter(Boolean);

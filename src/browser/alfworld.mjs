@@ -89,12 +89,58 @@ export class Alfworld {
   const nearby=Object.keys(anchors).filter(n=>anchors[n]===location).sort();
   return {agent:{location:nearby.includes(this.location)?this.location:nearby[0]||'',nearby},objects:Object.values(objects).sort((a,b)=>a.id.localeCompare(b.id))};
  }
- prompt(dialogue=[],transitions=[]){
+ // ZeroHero_iclr2027 zerohero/rl/alfworld_standard_rollout.py public_prompt + compact_prompt.
+ prompt(dialogue=[],transitions=[],previous=null,recent=6){
   const redact=s=>s.replace(/Your task is to:\s*[^\n]*/gi,'Your task is to: '+this.data.request);
   const parts=['Request: '+this.data.request,'Observation:\n'+redact(this.observation)];
   if(dialogue.length)parts.push('Conversation:\n'+dialogue.map(([q,a])=>`Agent: ${q}\nOperator: ${a}`).join('\n'));
-  if(transitions.length)parts.push('Recent actions:\n'+transitions.slice(-6).map(([a,o])=>a+'\n'+redact(o)).join('\n'));
+  const history=recent?transitions.slice(-recent):[];
+  if(history.length)parts.push('Recent actions:\n'+history.map(([a,o])=>a+'\n'+redact(o)).join('\n'));
   parts.push('Admissible physical commands:\n'+this.commands().map(c=>'- '+c).join('\n'),'Questions remaining: '+Math.max(0,8-dialogue.length));
-  return parts.join('\n\n').trim()+'\n\nNext action:\n';
+  let text=parts.join('\n\n');
+  if(previous){text+='\n\nPrevious response outcome: '+previous.result;if(['inadmissible','budget_exhausted','unparseable'].includes(previous.result))text+='; choose a different valid action. Previous output: '+previous.response;}
+  return text.trim()+'\n\nNext action:\n';
+ }
+ // Fallbacks for an overlong prompt drop the oldest recent actions first (trim_recent_actions_v1).
+ prompts(dialogue,transitions,previous){const n=Math.min(6,transitions.length);return Array.from({length:n+1},(_,i)=>this.prompt(dialogue,transitions,previous,n-i));}
+ // Symbolic operator: zerohero/alfworld_hidden_goal.py interpret_question + answer_question.
+ answer(question,variant){
+  const norm=v=>v.trim().toLowerCase().replace(/[.,]+$/,'').replace(/\s+/g,' ').replace(/^(?:an?|the)\s+/,'');
+  const {object:obj,destination:dest,requirement:req,quantity:qty}=this.data.intent,bare=s=>s.replace(/ \d+$/,'');
+  const text=norm('ask '+question).slice(4).trim().replace(/\?+$/,'');
+  const kind=(()=>{
+   if(/^(how|where)\b/.test(text))for(const op of ['heat','cool','clean','examine'])if(new RegExp('\\b'+op+'\\b').test(text))return ['procedure',op];
+   if(/^(which|what)\b/.test(text)&&/\b(?:use|take|pick|choose)\b/.test(text)&&(text.includes(obj)||/\b(?:one|object|instance)\b/.test(text)))return ['identity'];
+   const from=text.match(/^where (?:should|can) i take (.+?) from$/);if(from)return ['location',norm(from[1])];
+   if(text.startsWith('location '))return ['location',norm(text.slice(9))];
+   for(const [name,k] of [['destination','destination'],['requirement','requirement'],['treatment','requirement'],['state','requirement'],['quantity','quantity']])
+    if(text.startsWith(name+' ')){const target=norm(text.slice(name.length));if(target===obj||bare(target)===obj)return [k];}
+   if(['destination','target','where to put it'].includes(text)||/where.*(?:put|place|bring|leave|take it|go)|which (?:receptacle|destination)/.test(text))return ['destination'];
+   if(['quantity','count'].includes(text)||text.includes('how many'))return ['quantity'];
+   if(['requirement','state','treatment','goal','task'].includes(text)||/what.*(?:do|need)|should.*(?:clean|heat|cool|examine)|treatment|condition/.test(text))return ['requirement'];
+   if(text.startsWith('where')){const t=text.replace(/^(?:where (?:can i find|is|are|should i look for))\s+/,'');if(t===text)return ['unsupported'];const target=norm(t);return ['location',['it','them','the object','object'].includes(target)?obj:target];}
+   return ['unsupported'];
+  })();
+  const options={destination:[`The destination is ${dest}.`,`Use the ${dest} as the destination.`],requirement:[`Please ${req}.`,`What I need is for you to ${req}.`],quantity:[`I need ${qty} ${obj} object(s).`,`The required number is ${qty}.`]};
+  if(options[kind[0]])return options[kind[0]][variant%2];
+  if(kind[0]==='identity')return `Any matching ${obj} is acceptable. Follow the requested treatment and quantity.`;
+  if(kind[0]==='procedure')return {heat:'Hold the object, go to a microwave, then use the admissible heat command with that microwave.',cool:'Hold the object, go to a fridge, then use the admissible cool command with that fridge.',clean:'Hold the object, go to a sinkbasin, then use the admissible clean command with that sinkbasin.',examine:'Hold the object, go to the receptacle supporting the lamp, then use the lamp. A lamp itself is not a navigable receptacle.'}[kind[1]];
+  if(kind[0]==='location'){
+   const target=kind[1],cmp=(a,b)=>a<b?-1:a>b?1:0;
+   const matches=Object.entries(this.locations()).sort(([a],[b])=>cmp(a,b)).filter(([o])=>o===target||bare(o)===target);
+   if(!matches.length)return `I cannot determine where ${target} is.`;
+   const facts=matches.map(([o,l])=>`${o} is in or on ${l}`).join('; ');return facts[0].toUpperCase()+facts.slice(1)+'.';
+  }
+  return 'I can clarify the destination, treatment, quantity, object choice/location, or explain heating, cooling, cleaning, and examination.';
+ }
+ // zerohero/alfworld_dialogue.py locations_from_facts.
+ locations(){
+  const positions={},candidates={},rel=new Set(['at','in','inside','on','inreceptacle','onreceptacle','objectatreceptacle']);
+  for(const [name,args] of this.facts.values()){
+   if(['objectatlocation','receptacleatlocation'].includes(name)&&args.length>=2)(positions[args[0]]??=new Set()).add(args[1]);
+   if(rel.has(name)&&args.length>=2&&args[0]&&args[1]&&args[0]!=='player')(candidates[args[0]]??=new Set()).add(args[1]);
+  }
+  const near=(o,l)=>[...(positions[o]||[])].some(p=>positions[l]?.has(p));
+  return Object.fromEntries(Object.entries(candidates).map(([o,ls])=>[o,[...ls].sort((a,b)=>(near(o,b)-near(o,a))||(a<b?-1:a>b?1:0))[0]]));
  }
 }
