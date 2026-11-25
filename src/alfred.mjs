@@ -55,14 +55,27 @@ function toggleSpectator() {
 $('spectator-toggle').ondblclick = toggleSpectator;
 $('spectator-toggle').onclick = event => { if (event.detail === 0) toggleSpectator(); };
 $('spectator-frame').ondblclick = toggleSpectator;
+function flashSelectedAction(snapshot) {
+  const overlay = $('action-overlay');
+  const turn = `${snapshot.episode_id}:${snapshot.step}`;
+  if (overlay.dataset.turn === turn) return;
+  overlay.dataset.turn = turn;
+  for (const animation of overlay.getAnimations()) animation.cancel();
+  overlay.textContent = sceneAction(snapshot);
+  overlay.hidden = !overlay.textContent;
+  if (overlay.hidden) return;
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const keyframes = reducedMotion ? [{opacity: 1}, {opacity: 1}] : [
+    {opacity: 0}, {opacity: 1, offset: .1}, {opacity: 1, offset: .82}, {opacity: 0}
+  ];
+  overlay.animate(keyframes, 2100).onfinish = () => { overlay.hidden = true; };
+}
 function draw(snapshot) {
   const key = JSON.stringify(snapshot);
   if (key === previous) return;
   if(snapshot.renderer==='three-textworld')kitchenView(snapshot);
   else showCamera(snapshot);
-  const actionText=sceneAction(snapshot);
-  $('action-overlay').textContent=actionText;
-  $('action-overlay').hidden=true;
+  if (document.documentElement.classList.contains('paper-game')) flashSelectedAction(snapshot);
   if(snapshot.renderer!=='three-textworld'){$('frame').src=snapshot.image;$('frame').hidden=false;}
   $('empty').hidden = true;
   if (snapshot.renderer!=='three-textworld' && snapshot.trace?.length) drawSchematic({trace: snapshot.trace}, snapshot.trace.length-1);
@@ -111,6 +124,7 @@ function resetView() {
   $('chat').replaceChildren();$('nochat').hidden=false;$('answer').value='';
   $('scenePlaces').replaceChildren();$('objects').replaceChildren();
   $('action-overlay').hidden=true;$('frame').hidden=true;$('empty').hidden=false;
+  $('robot-speech').hidden=true;
   $('request').textContent='The agent’s task will appear here when the episode starts.';
   showCamera({});
 }

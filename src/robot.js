@@ -40,6 +40,7 @@ export function createRobot() {
   round([.49,.46,.37],.16,cream,[0,.65,0]);
   disc(.21,.07,ochre,[0,.9,0],'y');
   disc(.12,.09,joint,[0,.94,0],'y');
+  const headStart = robot.children.length;
   const head=round([1.02,.77,.65],.22,cream,[0,1.32,0]); head.name='head';
   // Squircle ellipsoid: its centre projects 0.22 beyond the ceramic shell.
   const screenGeo = new THREE.SphereGeometry(1,48,32);
@@ -70,14 +71,19 @@ export function createRobot() {
   disc(.147,.032,cream,[0,1.31,-.343]);
   add(sphere,glow,[0,1.38,-.368],[.026,.026,.014]).castShadow=false;
   for(const x of [-.084,.084])add(sphere,joint,[x,1.27,-.365],[.014,.014,.009]);
+  const headParts = robot.children.slice(headStart);
+  const headPivot = new THREE.Group();
+  headPivot.position.y = 1.32;
+  robot.add(headPivot);
+  headParts.forEach(part => headPivot.attach(part));
   round([.14,.17,.04],.04,teal,[0,.69,.189]);
   disc(.047,.025,ochre,[0,.69,.22]);
-  const arms=[],legs=[];
+  const arms=[],hands=[],legs=[];
   for(const sign of [-1,1]) {
     const arm=new THREE.Group();arm.position.set(sign*.28,.80,0);arm.rotation.z=sign*.22;robot.add(arm);arms.push(arm);
     add(sphere,joint,[0,0,0],[.095,.095,.095],arm);
     add(new THREE.CapsuleGeometry(.084,.11,6,16),cream,[sign*.035,-.14,.01],[1,1,1],arm);
-    add(sphere,ochre,[sign*.045,-.27,.035],[.093,.11,.085],arm);
+    hands.push(add(sphere,ochre,[sign*.045,-.27,.035],[.093,.11,.085],arm));
     const leg=new THREE.Group();leg.position.set(sign*.15,.34,0);robot.add(leg);legs.push(leg);
     add(sphere,joint,[0,0,0],[.075,.10,.075],leg);
     round([.23,.22,.29],.08,cream,[0,-.20,.035],leg);
@@ -92,6 +98,18 @@ export function createRobot() {
       legs[0].position.y=.34+Math.max(0,Math.cos(phase))*.10;
       legs[1].position.y=.34+Math.max(0,-Math.cos(phase))*.10;
     }else{legs[0].position.y=legs[1].position.y=.34;}
+  };
+  const reach = new THREE.Vector3();
+  const handAxis = new THREE.Vector3();
+  robot.userData.poseAtDesk = (time, handTargets) => {
+    legs.forEach(leg => { leg.rotation.x = -1.35; });
+    headPivot.rotation.y = .025 * Math.sin(time * .9);
+    arms.forEach((arm, index) => {
+      const hand = hands[index].position;
+      reach.copy(handTargets[index]).sub(arm.position);
+      arm.scale.setScalar(THREE.MathUtils.clamp(reach.length() / hand.length(), .87, 1.43));
+      arm.quaternion.setFromUnitVectors(handAxis.copy(hand).normalize(), reach.normalize());
+    });
   };
   return robot;
 }

@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Watch a small language agent help in a virtual kitchen, ask for missing details, and shop in a simulated store.">
+<title>ZeroHero · Research Edition</title>
+<script>
+  if (location.hostname === '127.0.0.1' && location.port === '8776') {
+    location.replace('http://127.0.0.1:8777/newspaper.html' + location.hash);
+  }
+</script>
+<style>
+  :root {
+    --paper: #f6f3eb;
+    --ink: #24231f;
+    --rule: #979186;
+    --accent: #923426;
+    --grid: 21px;
+    --spread-columns: minmax(0, 1fr) minmax(0, 1fr);
+    --gutter: clamp(20px, 3vw, 44px);
+    --grid-ink: #bdb7ab;
+    --page-top: 16px;
+    background: var(--paper);
+    color: var(--ink);
+    font: 17px/1.55 Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  body { box-sizing: content-box; max-width: 1040px; margin: auto; padding: var(--page-top) max(20px, 6vw) 28px; }
+  a { color: inherit; text-underline-offset: .2em; }
+  a:hover { color: var(--accent); }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+  h1, h2, h3, p { margin: 0; }
+  header { font: 700 .84rem/1.4 "Courier New", monospace; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 5px 20px; }
+  header { border-block-end: 1px solid var(--ink); padding-block: 8px 12px; }
+  .wordmark { text-decoration: none; font: 700 1.55rem/.95 Georgia, serif; letter-spacing: -.06em; }
+  h1 {
+    margin-bottom: 12px;
+    font: 900 clamp(2.6rem, 7.4vw, 6.45rem)/.9 Georgia, serif;
+    letter-spacing: -.066em;
+    text-wrap: balance;
+  }
+  .front-page {
+    display: grid; grid-template-rows: auto 1fr;
+    min-block-size: calc(100svh - var(--page-top));
+  }
+  .agent-intro {
+    position: relative; isolation: isolate; display: grid;
+    grid-template-areas: "title" "portrait" "specs" "action";
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto clamp(240px, 34svh, 360px) auto auto;
+    gap: 20px; padding-block: 24px; border-bottom: 1px solid var(--rule);
+  }
+  .agent-title { grid-area: title; }
+  .agent-title h1 { margin: 0; font-size: clamp(2rem, 10vw, 4rem); line-height: .96; letter-spacing: -.055em; }
+  .agent-title h1 span { display: block; white-space: nowrap; }
+  .agent-title p { margin-top: 14px; color: var(--accent); font-size: clamp(1.12rem, 1.65vw, 1.5rem); line-height: 1.3; }
+  .spec-sheet {
+    grid-area: specs; align-self: start; min-width: 0; max-width: 100%; width: fit-content;
+    padding: 12px 16px 16px; background: var(--paper);
+    border-block: 1px solid #c6beb0;
+  }
+  .spec-sheet h2 { margin-bottom: .65em; font-size: 1.17rem; line-height: 1.2; }
+  .agent-specs {
+    display: grid; grid-template-columns: max-content minmax(0, 23ch); align-items: baseline;
+    gap: .45em .9em; margin: 0; font-size: 1rem; line-height: 1.35;
+  }
+  .agent-specs dt { color: #5a554c; font-size: .9em; }
+  .agent-specs dd { margin: 0; }
+  .hero-action { grid-area: action; justify-self: start; }
+  .chapter-stars { display: flex; gap: clamp(6px, 1vw, 14px); margin-block: 12px 16px; }
+  .chapter-star {
+    position: relative; isolation: isolate; display: grid; place-items: center;
+    width: clamp(80px, 10vw, 112px); aspect-ratio: 1; color: var(--paper);
+    text-decoration: none; font-size: clamp(.78rem, 1.2vw, 1rem); font-weight: bold;
+  }
+  .chapter-star::before {
+    content: ""; position: absolute; inset: 0; z-index: -1;
+    background: var(--ink);
+    clip-path: polygon(50% 0%, 59% 11%, 72% 5%, 75% 19%, 89% 19%, 86% 33%, 99% 39%, 90% 50%, 99% 61%, 86% 67%, 89% 81%, 75% 81%, 72% 95%, 59% 89%, 50% 100%, 41% 89%, 28% 95%, 25% 81%, 11% 81%, 14% 67%, 1% 61%, 10% 50%, 1% 39%, 14% 33%, 11% 19%, 25% 19%, 28% 5%, 41% 11%);
+  }
+  .chapter-star span { transform: rotate(-12deg); }
+  .chapter-star:is(:hover, :focus-visible) { color: var(--paper); }
+  .chapter-star:is(:hover, :focus-visible)::before { background: var(--accent); }
+  .read-more-question { margin: 0 0 .45em; font-size: clamp(1.18rem, 1.6vw, 1.55rem); font-weight: bold; line-height: 1.15; }
+  .read-more {
+    display: inline-flex; align-items: center; justify-content: space-between; gap: 1.75em;
+    min-height: 44px; padding: 8px 16px; background: var(--ink); color: var(--paper); text-decoration: none;
+  }
+  .read-more:hover { background: #414038; color: var(--paper); text-decoration: underline; }
+  .agent-figure {
+    grid-area: portrait; align-self: stretch; min-width: 0; min-height: 0;
+    margin: 0; z-index: 1; pointer-events: none;
+  }
+  .agent-figure, .game-frame {
+    position: relative; isolation: isolate;
+  }
+  :is(.agent-intro, .game-frame)::before {
+    --fade: calc(2.5 * var(--grid));
+    content: ""; position: absolute; inset-block: calc(-.5 * var(--grid));
+    inset-inline: calc(-1 * var(--gutter)); z-index: -1; pointer-events: none;
+    background-image: linear-gradient(to right, var(--grid-ink) 1px, transparent 1px),
+                      linear-gradient(to bottom, var(--grid-ink) 1px, transparent 1px);
+    background-size: var(--grid) var(--grid);
+    mask-image: linear-gradient(to right, transparent, black var(--fade), black calc(100% - var(--fade)), transparent),
+                linear-gradient(to bottom, transparent, black var(--fade), black calc(100% - var(--fade)), transparent);
+    mask-composite: intersect;
+  }
+  .agent-figure canvas { mask-image: linear-gradient(to right, black 88%, transparent); position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+  .capability { padding-top: 30px; scroll-margin-block-start: 12px; }
+  .capability-spread {
+    display: grid; align-items: start;
+    grid-template: "demo lead" auto "demo score" auto / var(--spread-columns);
+    gap: 14px var(--gutter);
+  }
+  .capability-spread .lead h2 { max-inline-size: 12ch; }
+  .lead { grid-area: lead; }
+  .lead > h2 { font: 900 clamp(2.3rem, 4.4vw, 4.2rem)/.95 Georgia, serif; letter-spacing: -.066em; text-wrap: balance; margin-bottom: 14px; }
+  .lead p { max-width: 60ch; }
+  :is(.alfred-demo, .webshop-demo) { grid-area: demo; min-width: 0; }
+  .game-frame {
+    display: grid;
+  }
+  .alfred-demo { align-self: stretch; container-type: inline-size; }
+  .alfred-demo iframe { display: block; width: 100%; height: 100%; min-height: clamp(370px, 90cqw, 430px); border: 1px solid var(--rule); background: var(--paper); }
+  .capability-score { grid-area: score; margin: 0; width: 100%; }
+  .capability-score figcaption { font: .83rem/1.4 Georgia, serif; color: #504a42; }
+  .capability-results { grid-column: 1 / -1; margin-block: 20px 6px; border-block-end: 1px solid var(--rule); padding-block-end: 20px; }
+  .capability-results h3 { font: italic 1.3rem/1.25 Georgia, serif; }
+  .capability-results > p { margin-top: 10px; }
+  .training-plots { display: grid; grid-template-columns: var(--spread-columns); gap: 24px var(--gutter); margin-top: 22px; }
+  .training-plots figure { min-width: 0; margin: 0; }
+  .training-plots h4 { margin: 0 0 6px; font: 700 1.18rem/1.2 Georgia, serif; }
+  :is(.capability-score, .training-plots) img { display: block; width: 100%; height: auto; }
+  .training-plots figcaption { color: #504a42; font: .92rem/1.45 Georgia, serif; }
+  .webshop-demo { align-self: stretch; display: flex; flex-direction: column; }
+  .webshop-views { flex: 1; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--grid); }
+  .desk { position: relative; align-self: stretch; width: 100%; margin: 0; min-height: 0; aspect-ratio: 1.05; border: 1px solid var(--rule); overflow: hidden; background: #e9dfca; }
+  .desk canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+  .desk-control {
+    position: absolute; inset-block-end: 12px; inset-inline-end: 12px; z-index: 2;
+    display: grid; place-items: center; inline-size: 52px; block-size: 52px; padding: 0;
+    border: 3px solid #14231f; border-radius: 50%;
+    background: linear-gradient(155deg, #ffe2ae, #f2ca87); color: #433321;
+    box-shadow: inset 0 0 0 2px #f3efdf, inset 0 0 0 4px #b58445, 0 4px 0 #14231f, 0 8px 16px #14231f30;
+    font: 700 19px/1 system-ui, sans-serif; cursor: pointer;
+  }
+  .desk-control:disabled { opacity: .67; cursor: default; }
+  .desk-control:not(:disabled):active { scale: .96; }
+  .desk-control svg, .desk-control[data-started] span { display: none; }
+  .desk-control[data-started] svg { display: block; }
+  .desk-control span { margin-inline-start: 2px; }
+  .monitor { position: absolute; inset: 8% 5% 17% 29%; display: flex; transform-origin: top left; }
+  .monitor[data-mounted] { inset: 0 auto auto 0; }
+  .monitor-screen { position: relative; display: flex; flex: 1; flex-direction: column; min-height: 0; border-radius: 4px; overflow: hidden; background: var(--paper); }
+  .screen-broadcast { contain: size; min-block-size: 0; border: 1px solid var(--rule); border-radius: 0; }
+  .screen-broadcast .screen-content { min-block-size: 0; overflow-y: auto; scrollbar-gutter: stable; font-size: .92rem; }
+  .screen-broadcast .screen-bar, .screen-broadcast .screen-action { font-size: .84rem; }
+  .screen-bar, .screen-action, .screen-content { padding: 7px 9px; overflow-wrap: anywhere; }
+  .screen-bar, .screen-action { font: .81rem/1.4 "Courier New", monospace; }
+  .screen-bar { flex: none; background: #25332c; color: #fff5df; font-weight: 700; font-size: 20px; }
+  .screen-action { flex: none; max-block-size: 4.8em; overflow-y: auto; border-bottom: 1px solid var(--rule); color: var(--accent); font-size: 18px; }
+  .screen-content { flex: 1; overflow: auto; font-size: 20px; line-height: 1.2; }
+  .screen-content ul { list-style: none; margin: 0; padding: 0; }
+  .screen-content li + li { border-top: 1px solid #d5cbbc; margin-top: 5px; padding-top: 5px; }
+  .screen-content small { display: block; color: #615849; }
+  .screen-content li[data-product] { display: flow-root; min-height: 1.8em; }
+  .screen-content img { float: left; width: 48px; height: 48px; object-fit: contain; margin-right: 8px; mix-blend-mode: multiply; }
+  .shop-cursor {
+    position: absolute; top: 0; left: 0; pointer-events: none;
+    width: 14px; height: 20px; background: #25231d;
+    clip-path: polygon(0 0, 100% 67%, 54% 67%, 73% 94%, 53% 100%, 34% 72%, 0 100%);
+    transition: transform .4s ease-in-out;
+    filter: drop-shadow(0 0 1px white);
+  }
+  @media (prefers-reduced-motion: reduce) { .shop-cursor { transition: none; } }
+  .webshop-assignment { margin-bottom: 8px; padding: 12px 16px 14px; background: var(--ink); color: var(--paper); }
+  .webshop-assignment h3 { margin-bottom: 6px; font: 700 .78rem/1.35 system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+  .webshop-assignment p { overflow-wrap: anywhere; line-height: 1.45; }
+  .agent-intro::before {
+    --grid-ink: rgb(73 63 45 / 13%); inset-block: 0;
+  }
+  @media (min-width: 701px) {
+    main > .capability { margin-inline: min(6vw, calc((100vw - 100%) * .2)); }
+    .front-page {
+      --inset: clamp(20px, 6vw, 96px);
+      block-size: calc(100svh - var(--page-top)); grid-template-rows: auto minmax(0, 1fr);
+    }
+    .front-page header { padding-inline: var(--inset); }
+    .agent-intro {
+      padding: clamp(16px, 3.5svh, 38px) var(--inset);
+      grid-template: "title title" auto "specs action" minmax(0, max-content) / minmax(0, 1fr) auto;
+      align-content: center; gap: clamp(16px, 3.4svh, 32px) 24px;
+    }
+    .agent-title h1 { font-size: clamp(3.3rem, min(7.4vw, 11svh), 6.6rem); }
+    .agent-title p { margin-top: clamp(8px, 1.6svh, 18px); }
+    .spec-sheet {
+      align-self: stretch; min-height: 0; margin-inline-start: -16px; overflow-y: auto;
+      max-width: min(100%, 39vw);
+    }
+    .agent-specs { font-size: clamp(.88rem, 1.85svh, 1rem); }
+    .hero-action { align-self: end; justify-self: end; z-index: 2; }
+    .read-more { width: 100%; }
+    .hero-action { min-inline-size: clamp(136px, 14vw, 208px); }
+    .agent-figure { position: absolute; grid-area: auto; inset: 10px 0 10px 20%; }
+  }
+  @media (min-width: 901px) {
+    .front-page { inline-size: min(92vw, 1440px); margin-inline: calc((100% - min(92vw, 1440px)) / 2); }
+  }
+  @media (min-width: 1000px) and (min-aspect-ratio: 5/4) {
+    .agent-intro {
+      grid-template:
+        ".     .        action" minmax(0, 1fr)
+        "title title    action" auto
+        "specs .        action" minmax(0, max-content)
+        ".     .        action" minmax(0, 1fr)
+        / fit-content(42%) minmax(0, 1fr) clamp(150px, 15vw, 208px);
+      row-gap: 0;
+    }
+    .agent-title { margin-bottom: clamp(16px, 3svh, 30px); }
+    .agent-figure { grid-area: 1 / 2 / -1 / 3; inset: -12px 0; }
+    .hero-action { align-self: center; justify-self: stretch; min-inline-size: 0; text-align: center; }
+    .chapter-stars { flex-direction: column; align-items: center; gap: clamp(6px, 1.3svh, 14px); }
+    .chapter-star { width: clamp(96px, min(10vw, 15svh), 148px); font-size: clamp(.8rem, 1.2vw, 1.05rem); }
+    .read-more-question { font-size: clamp(1.05rem, 1.6vw, 1.5rem); }
+  }
+  @media (min-width: 701px) and (max-width: 999px), (min-width: 701px) and (max-aspect-ratio: 5/4) {
+    .front-page { --inset: 18px; }
+    .hero-action { position: absolute; grid-area: auto; right: var(--inset); bottom: 3%; min-inline-size: 0; text-align: center; }
+    .chapter-stars { gap: 4px; margin-block: 6px; }
+    .chapter-star { width: clamp(80px, 9vw, 95px); font-size: .75rem; }
+    .agent-figure { inset: 3% 0 max(23%, 188px) 48%; }
+    .spec-sheet { max-width: 43vw; }
+  }
+  @media (min-width: 701px) and (max-height: 680px) {
+    .front-page { --inset: 20px; }
+    .agent-intro { padding-block: 12px; row-gap: 0; }
+    .agent-title { margin-bottom: 12px; }
+    .agent-title h1 { font-size: clamp(2.8rem, 9svh, 3.6rem); }
+    .spec-sheet { padding-block: 10px; }
+    .agent-specs { row-gap: 3px; grid-template-columns: max-content minmax(0, 24ch); }
+  }
+  @media (max-width: 900px) {
+    #webshop { grid-template: "lead" auto "demo" auto "score" auto / minmax(0, 1fr); }
+  }
+  @media (max-width: 700px) {
+    .agent-specs { column-gap: 12px; }
+    .spec-sheet { width: 100%; }
+    .capability-spread { grid-template: "lead" auto "demo" auto "score" auto / minmax(0, 1fr); }
+    .training-plots { grid-template-columns: minmax(0, 1fr); }
+    .desk-control { inline-size: 44px; block-size: 44px; inset-block-end: 8px; inset-inline-end: 8px; }
+    .screen-bar, .screen-action, .screen-content { font-size: 16px; padding: 4px 6px; }
+  }
+  @media (max-width: 540px) {
+    .webshop-views { grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); }
+    .desk { min-block-size: clamp(210px, 58vw, 260px); }
+  }
+</style>
+<link rel="stylesheet" href="survive.css">
+</head>
+<body>
+<main>
+  <div class="front-page">
+    <header><a class="wordmark" href="menu.html" aria-label="ZeroHero game menu">ZeroHero</a></header>
+  <section class="agent-intro" aria-labelledby="agent-title">
+    <div class="agent-title">
+      <h1 id="agent-title"><span>Small Language</span> Agent</h1>
+      <p>Already in your browser</p>
+    </div>
+    <section class="spec-sheet" tabindex="0" aria-labelledby="specs-title">
+      <h2 id="specs-title">Specifications</h2>
+      <dl class="agent-specs">
+        <dt>Model sizes</dt><dd>5M, 10M, 50M parameters (nominal)</dd>
+        <dt>Architecture</dt><dd>Qwen-like decoder-only Transformer</dd>
+        <dt>Initialization</dt><dd>Random weights</dd>
+        <dt>Expert data</dt><dd>77,309 recorded decisions across three datasets</dd>
+        <dt>Post-training</dt><dd>Reinforcement learning with PPO</dd>
+        <dt>Environments</dt><dd>Crafter, WebShop, and Alfworld-Dialogue</dd>
+        <dt>Capabilities</dt><dd>Reason through actions, search, and ask for missing details</dd>
+      </dl>
+    </section>
+    <div class="hero-action">
+      <p class="read-more-question">What can it do?</p>
+      <nav class="chapter-stars" aria-label="Agent demos">
+        <a class="chapter-star" href="#alfred"><span>Household</span></a>
+        <a class="chapter-star" href="#webshop"><span>Shopping</span></a>
+        <a class="chapter-star" href="#survive"><span>Survive</span></a>
+      </nav>
+      <a class="read-more" href="#alfred" aria-label="Read more about the agent’s household tasks">Read more <span aria-hidden="true">↓</span></a>
+    </div>
+    <figure class="agent-figure" aria-label="Front-facing, full-body 3D render of the ZeroHero robot">
+      <canvas id="agent-portrait" aria-hidden="true"></canvas>
+    </figure>
+  </section>
+  </div>
+
+  <section class="capability capability-spread" id="alfred" aria-labelledby="alfred-title">
+    <div class="lead">
+      <h2 id="alfred-title">Help around the house.</h2>
+      <p>Our small language agent (SLA) is on kitchen duty. The 5M version is running right here in your browser. Watch it open cupboards, put things away and ask where something belongs when the instructions leave that part out.</p>
+    </div>
+    <div class="alfred-demo game-frame">
+      <iframe src="alfred.html?live=1" title="Live ALFRED kitchen and agent dialogue"></iframe>
+    </div>
+    <figure class="capability-score">
+      <figcaption>134 unseen chores · Reward-trained SLA, mean ±1 SD over three runs</figcaption>
+      <img src="article/alfworld-test.svg" width="540" height="235" loading="lazy" alt="Gemma completed 67.9% of the chores. Our reward-trained SLA averaged 74.4%, with a standard deviation of 5.2 percentage points.">
+    </figure>
+    <section class="capability-results" aria-labelledby="alfred-results-title">
+      <h3 id="alfred-results-title">How our SLA learned its chores</h3>
+      <p>Gemma gave our SLA its first kitchen lessons through written demonstrations. Then we let the SLA practise and rewarded it for finishing the job. On 134 new chores, the version we trained this way averaged <strong>74.4% success</strong> across three runs. Gemma completed <strong>67.9%</strong> of the same chores.</p>
+      <div class="training-plots">
+        <figure>
+          <h4>Following Gemma’s example</h4>
+          <img src="article/alfworld-data.svg" width="500" height="284" loading="lazy" alt="Three sizes of SLA learn from six demonstration budgets. The 10M version comes closest to Gemma, finishing 90 of 134 tasks.">
+          <figcaption>Our smallest collection held 2,154 of Gemma’s decisions. With all 63,379, the 10M version of our SLA finished 90 of 134 chores. Gemma finished 91.</figcaption>
+        </figure>
+        <figure>
+          <h4>Taking a turn in the kitchen</h4>
+          <img src="article/alfworld-practice.svg" width="500" height="284" loading="lazy" alt="On 60 validation chores, the SLA trained with task rewards finished 56. With extra coaching it finished 50. Gemma finished 43.">
+          <figcaption>After 600 rounds of practice with task rewards (PPO), our SLA finished 56 of 60 validation chores. A version that also received coaching on its responses finished 50. Gemma finished 43.</figcaption>
+        </figure>
+      </div>
+    </section>
+  </section>
+
+  <section class="capability capability-spread" id="webshop" aria-labelledby="webshop-title">
+    <div class="lead">
+      <h2 id="webshop-title">Your personal shopper.</h2>
+      <p>A pair of shoes can be the right colour and still be a size too small. Our 10M-parameter SLA runs in your browser. Watch it search a store of 1,000 products for a match, choose a size and decide what to buy.</p>
+    </div>
+    <div class="webshop-demo">
+      <section class="webshop-assignment" aria-labelledby="shop-assignment">
+        <h3 id="shop-assignment">The assignment</h3>
+        <p id="shop-instruction">Waiting for a shopping request.</p>
+      </section>
+      <div class="webshop-views game-frame">
+        <figure class="desk">
+          <canvas id="webshop-desk" aria-hidden="true"></canvas>
+          <div class="monitor" aria-hidden="true">
+            <div class="monitor-screen">
+              <p class="screen-bar">WebShop</p>
+              <p class="screen-action">Waiting for the first action</p>
+              <div class="screen-content">The store opens when an episode starts.</div>
+              <span class="shop-cursor" hidden></span>
+            </div>
+          </div>
+          <button type="button" id="shop-start" class="desk-control" aria-label="Start WebShop" title="Start WebShop">
+            <span aria-hidden="true">▶</span>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10a9 9 0 1 1 2 8M3 4v6h6"/></svg>
+          </button>
+        </figure>
+        <section class="monitor-screen screen-broadcast" aria-labelledby="terminal-title">
+          <h3 class="screen-bar" id="terminal-title">Agent’s screen</h3>
+          <p class="screen-action" id="shop-action" role="status">Waiting for the first action</p>
+          <div class="screen-content" id="shop-page" tabindex="0" aria-label="Current store screen">The store opens when an episode starts.</div>
+          <span class="shop-cursor" aria-hidden="true" hidden></span>
+        </section>
+      </div>
+    </div>
+    <figure class="capability-score">
+      <figcaption>WebShop-Small · Shopping requests completed during training</figcaption>
+      <img src="article/webshop-score.svg" width="540" height="235" loading="lazy" alt="In the final training interval, the 10M SLA completed 67.2% of requests. The expert reference was 70%.">
+    </figure>
+    <section class="capability-results" aria-labelledby="webshop-results-title">
+      <h3 id="webshop-results-title">How our SLA learned to shop</h3>
+      <p>Our shopper learned from 22,005 decisions made by an expert model across 4,068 shopping requests. Then it tried the job for itself. The store gave partial credit for a near miss, but a purchase only counted as a success when it met every requirement.</p>
+      <div class="training-plots">
+        <figure>
+          <h4>Learning from more shopping trips</h4>
+          <img src="article/webshop-data.svg" width="500" height="284" loading="lazy" alt="At the largest demonstration budget, shopping success reached 49.6% for the 5M model, 56.8% for the 10M model and 58.0% for the 50M model.">
+          <figcaption>We varied how many expert decisions each model could study. With 42,579 examples, the 10M shopper filled 56.8% of orders correctly. The 50M shopper reached 58.0%.</figcaption>
+        </figure>
+        <figure>
+          <h4>Getting the whole order right</h4>
+          <img src="article/webshop-practice.svg" width="500" height="284" loading="lazy" alt="During training, the shopper with rewards and expert coaching reached 67.2% success in the final interval, compared with 50.0% with rewards alone. The dashed expert reference is 70%.">
+          <figcaption>In the final training interval, the shopper that also practised explaining its choices filled 67.2% of orders correctly. With store rewards alone, it filled 50.0%. <a href="https://huggingface.co/eteron/ZeroHero-WebShop-10M-PPO-RA">WebShop model weights</a></figcaption>
+        </figure>
+      </div>
+    </section>
+  </section>
+
+  <section id="survive" class="capability" aria-labelledby="survive-title">
+    <h2 id="survive-title">Survive!</h2>
+    <div class="game-frame">
+      <div class="survive-top">
+        <span class="survive-label">Achievements</span><span class="survive-count"></span>
+        <ul class="survive-medals" aria-label="World achievements"></ul>
+      </div>
+      <div class="survive-field">
+        <img hidden alt="Live spectator view of the agent’s Crafter world">
+        <aside class="survive-thought" aria-label="Agent’s reasoning">
+          <span class="survive-label">Agent’s reasoning</span>
+          <p>Opening the survival world…</p>
+          <span class="survive-action"></span>
+        </aside>
+      </div>
+      <div class="survive-bottom">
+        <div><span class="survive-label">Inventory</span><ul class="survive-items" aria-label="Current inventory"></ul></div>
+        <div class="survive-focus"><span class="survive-label">Focus</span><img hidden alt="The 256-pixel observation used to choose this action"></div>
+      </div>
+    </div>
+    <p class="survive-note">You can see the whole clearing. The agent gets just the small view marked Focus, its achievements and its own memory. This 12.6M-parameter visual policy trained on a billion decisions. <a href="https://huggingface.co/eteron/ZeroHero-Crafter-Visual-12.6M-PPO-RA-1B-steps">Crafter checkpoint</a></p>
+    <div class="survive-plots" tabindex="0" aria-label="Three training charts for the separate 100M-decision run">
+      <figure><h3>From iron to diamonds</h3><img src="article/survive-skills.png" loading="lazy" alt="Iron, iron pickaxe and diamond achievement rates during the 100M run"><figcaption>In the separate 100M-decision run, diamond collection first passed 25% of episodes at 55.4M decisions.</figcaption></figure>
+      <figure><h3>Words for the next move</h3><img src="article/survive-words.png" loading="lazy" alt="Mean token counts for the full response, reasoning and memory through 100M decisions"><figcaption>Each move comes with a thought and a note for the next turn. The full response also includes the action and its formatting.</figcaption></figure>
+      <figure><h3>Staying alive longer</h3><img src="article/survive-duration.png" loading="lazy" alt="Mean decisions per episode over the first 100M decisions of the plotted run"><figcaption>Longer episodes give the agent more turns to explore. In the independent 1B run, it earned an average of 19.19 of the 22 achievements in evaluation.</figcaption></figure>
+    </div>
+  </section>
+
+</main>
+<script type="module" src="webshop-desk.js"></script>
+<script type="module" src="webshop-episode.js"></script>
+<script type="module" src="survive.js"></script>
+</body>
+</html>

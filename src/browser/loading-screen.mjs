@@ -1,5 +1,6 @@
 // Same ZEROHERO loading screen as the server demo; browser lifecycle owns completion.
 export function createStartupLoader(){
+ const embedded=new URL(location.href).searchParams.has('live')&&window.self!==window.top;
  let overlay,previousFocus,blocked=[],percent=0;
  function show(){
   if(overlay)return;
@@ -26,7 +27,10 @@ export function createStartupLoader(){
   for(const [element] of blocked)element.inert=true;
   document.body.append(overlay);
   overlay.querySelector('button').onclick=()=>location.reload();
-  overlay.querySelector('[role="dialog"]').focus();
+  if(embedded){
+   const content=overlay.querySelector('[role="dialog"]');
+   content.removeAttribute('role');content.removeAttribute('aria-modal');
+  }else overlay.querySelector('[role="dialog"]').focus();
   update('Loading the model…');
  }
  function update(text){
@@ -44,14 +48,14 @@ export function createStartupLoader(){
   completed.querySelector('.loading-caption').textContent='Ready';
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
    completed.remove();for(const [element,inert] of blocked)element.inert=inert;
-   if(previousFocus?.isConnected)previousFocus.focus();
+   if(!embedded&&previousFocus?.isConnected)previousFocus.focus();
   }));
  }
  function fail(message){
   if(!overlay)return;
   overlay.querySelector('.loading-caption').textContent='Could not start the model: '+message;
   overlay.querySelector('.loading-spinner').hidden=true;
-  const retry=overlay.querySelector('button');retry.hidden=false;retry.focus();
+  const retry=overlay.querySelector('button');retry.hidden=false;if(!embedded)retry.focus();
  }
  return {show,update,finish,fail};
 }

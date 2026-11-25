@@ -1,0 +1,44 @@
+#survive { padding-block: 38px 26px; }
+#survive h2 { text-align: center; font: 900 clamp(3.3rem,8vw,7rem)/.95 Georgia,serif; letter-spacing:-.065em; margin: 0 0 24px; }
+.survive-top,.survive-bottom { background:#24231f; color:#f6f3eb; padding:10px 14px; }
+.survive-top { display:flex; gap:12px; align-items:center; }
+.survive-label,.survive-count,.survive-action { font:700 .72rem/1.3 'Courier New',monospace; }
+.survive-label { text-transform:uppercase; letter-spacing:.06em; }
+.survive-top ul,.survive-bottom ul { list-style:none; margin:0; padding:0; display:flex; gap:5px; }
+.survive-medals { flex:1; min-width:0; flex-wrap:wrap; }
+.survive-medals li { position:relative; width:clamp(20px,2.4vw,31px); aspect-ratio:1; border:1px solid #817d70; border-radius:50%; display:grid; place-items:center; }
+.survive-medals li img { width:65%; filter:grayscale(1); opacity:.46; }
+.survive-medals li.earned { background:#ecd59b; border-color:#edbd59; }
+.survive-medals li.earned img { opacity:1; filter:none; }
+.survive-medals li.earned::after { content:'✓'; position:absolute; right:-2px; bottom:-3px; font:bold 10px system-ui; background:#325748; color:white; border-radius:50%; }
+#survive img { image-rendering:pixelated; }
+.survive-field { position:relative; background:#323d31; width:100%; aspect-ratio:25/11; overflow:hidden; }
+.survive-field > img { width:100%; height:100%; object-fit:cover; }
+.survive-thought { position:absolute; right:2.5%; top:50%; transform:translateY(-50%); width:32%; height:74%; display:flex; flex-direction:column; background:#f6f3ebf5; color:var(--ink); border:1px solid var(--ink); padding:clamp(9px,1.5vw,20px); }
+.survive-thought p { margin:.6em 0; overflow:auto; min-height:0; flex:1; font:clamp(.8rem,1.15vw,.94rem)/1.45 Georgia,serif; }
+.survive-action { padding-top:5px; border-top:1px solid var(--rule); }
+.survive-bottom { display:flex; gap:20px; align-items:center; justify-content:space-between; }
+.survive-bottom ul { margin-top:6px; flex-wrap:wrap; gap:4px; }
+.survive-items li { display:flex; align-items:center; gap:3px; padding:3px 5px; border:1px solid #807b6e; font: .78rem monospace; }
+.survive-items img { width:20px; }
+.survive-items .empty { opacity:.5; }
+.survive-focus { display:flex; align-items:center; gap:8px; }
+.survive-focus img { width:68px; height:68px; }
+.survive-plots { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:clamp(10px,2.5vw,32px); margin-top:24px; }
+.survive-plots figure { margin:0; }
+.survive-plots h3 { font:700 1.15rem/1.2 Georgia,serif; }
+#survive .survive-plots img { display:block; width:100%; mix-blend-mode:multiply; image-rendering:auto; }
+.survive-plots figcaption,.survive-note { font:.91rem/1.45 Georgia,serif; color:#504a42; }
+.survive-note { margin:10px 0; }
+@media(max-width:700px){
+  .survive-field { aspect-ratio:1.42; }
+  .survive-field > img { object-position:49% center; }
+  .survive-thought { width:39%; height:82%; }
+  .survive-top { flex-wrap:wrap; gap:6px; }
+  .survive-medals { order:2; flex-basis:100%; }
+  .survive-bottom { gap:8px; padding:8px; }
+  .survive-focus { flex-direction:column; gap:3px; }
+  .survive-focus img { width:50px; height:50px; }
+  .survive-plots { display:flex; overflow:auto; scroll-snap-type:x proximity; }
+  .survive-plots figure { flex:0 0 78%; scroll-snap-align:start; }
+}

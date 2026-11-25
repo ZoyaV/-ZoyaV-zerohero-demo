@@ -6,6 +6,7 @@ const clone=value=>structuredClone(value);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const ALFWORLD_SCENES=10;
 export function install(kind){
+ const live=new URL(location.href).searchParams.has('live');
  const startup=window.zeroheroStartup||createStartupLoader();
  startup.show();
  const network=window.fetch.bind(window),base=new URL('./',location.href),path=kind==='alfworld'?'alfworld':'craftax';
@@ -35,11 +36,16 @@ export function install(kind){
  const active=epoch=>epoch===version&&state!=='done'&&state!=='idle';
  async function unpaused(epoch){while(active(epoch)&&state==='paused')await sleep(80);return active(epoch);}
  async function advise(question,questionId,epoch,operatorRevision,attempt=0){
-  if(kind==='alfworld'){
+  if(kind==='alfworld'||live){
    // Presentation pacing only: the instant symbolic answer would hide the question bubble.
    await sleep(2500);
    if(!active(epoch)||pending?.question_id!==questionId||submitted)return;
-   pending.recommendation=game.answer(question,step-1);pending.recommendation_state='ready';
+   if(kind==='alfworld')pending.recommendation=game.answer(question,step-1);
+   else{
+    const next=game.operatorContext(question).route[0];
+    pending.recommendation=next?`Move ${next.action.toLowerCase()} one cell, then check your surroundings.`:'You are at the goal.';
+   }
+   pending.recommendation_state='ready';
    if(operator==='ai'&&revision===operatorRevision&&state==='running')submit({question_id:questionId,text:pending.recommendation,operator_revision:revision},'ai');
    return;
   }
@@ -73,6 +79,14 @@ export function install(kind){
   if(kind==='alfworld')return parseAlfworld(text)||'';
   return parseCraftax(text)||'NOOP';
  }
+ function finishEpisode(epoch){
+  state='done';
+  if(live)setTimeout(async()=>{
+   if(epoch!==version||state!=='done')return;
+   try{await command('run',{});}
+   catch(e){error=e.message;state='error';}
+  },4000);
+ }
  async function run(epoch){
   try{
    while(active(epoch)&&step<(kind==='alfworld'?60:100)){
@@ -80,10 +94,11 @@ export function install(kind){
     const previous=kind==='alfworld'&&trace.length>1?trace.at(-1):null;
     const result=await generate(kind==='alfworld'?game.prompts(dialogue,transitions,previous):game.prompt());
     if(!await unpaused(epoch))return;
+    if(live&&step===0)startup.finish();
     action=parse(result.text);if(kind==='craftax'&&action==='ASK_OPERATOR')action='ask Please give me directions to the hidden goal.';step++;
     const frame=kind==='craftax'?{...currentFrame(),action,reasoning:result.text,question_id:`${runId}:${step}`}:null;
     if(kind==='alfworld')trace.push({observation:game.observation,after:'',action,response:result.text});
-    if(action.toLowerCase().startsWith('ask ')&&(kind==='craftax'||dialogue.length<8)){await ask(action.slice(4).trim(),epoch,frame);if(kind==='alfworld')trace.at(-1).result='question';}
+    if(action.toLowerCase().startsWith('ask ')&&(kind==='craftax'||dialogue.length<8)){await ask(action.slice(4).trim(),epoch,frame);if(active(epoch)&&kind==='alfworld')trace.at(-1).result='question';}
     else if(kind==='alfworld'){
      if(game.commands().includes(action)){const observation=game.step(action);transitions.push([action,observation]);Object.assign(trace.at(-1),{after:observation,result:'executed'});}
      else trace.at(-1).result=!action?'unparseable':action.startsWith('ask ')?'budget_exhausted':'inadmissible';
@@ -94,10 +109,11 @@ export function install(kind){
     if(frame)frames.push(frame);
     // Let the 3D robot finish walking so chat and scene stay in sync; capped for hidden tabs.
     for(const until=Date.now()+15000;globalThis.sceneReady&&!globalThis.sceneReady(step)&&Date.now()<until&&active(epoch);)await sleep(100);
-    if(game.won||(kind==='alfworld'&&game.moves>=50)){state='done';return;}
+    if(!active(epoch))return;
+    if(game.won||(kind==='alfworld'&&game.moves>=50)){finishEpisode(epoch);return;}
     await sleep(kind==='alfworld'&&trace.at(-1)?.result==='question'?3000:900);
    }
-   if(active(epoch))state='done';
+   if(active(epoch))finishEpisode(epoch);
   }catch(e){if(epoch===version){error=e.message;state='error';startup.fail(e.message);}}
  }
  async function command(name,body){
@@ -105,9 +121,11 @@ export function install(kind){
    if(name==='run'&&state==='running')return new Response(JSON.stringify({error:'Game already running'}),{status:409});
    // data/alfworld.json is shown first; later episodes draw from data/alfworld-1..9.json.
    if(kind==='alfworld'&&runId){
+    const previousVersion=version;
     let next;do next=Math.floor(Math.random()*ALFWORLD_SCENES);while(next===sceneIndex);
     const r=await network(new URL(`data/${next?`alfworld-${next}`:'alfworld'}.json`,base));if(!r.ok)throw Error('Environment data unavailable');
-    const data=await r.json();sceneIndex=next;game=new Alfworld(data);
+    const data=await r.json();if(previousVersion!==version)return status();
+    sceneIndex=next;game=new Alfworld(data);
    }
    cancel();game.reset();runId=crypto.randomUUID();state='running';step=0;dialogue=[];transitions=[];frames=[];pending=null;action='';error='';submitted=false;
    loading=worker?'Generating the next decision…':'Loading the model…';trace=kind==='alfworld'?[{observation:game.observation,after:'',action:''}]:[];
@@ -142,7 +160,9 @@ export function install(kind){
  // An initial question is discarded: preparation must not wait for the external operator.
  async function prepare(){
   try{
-   await ready;state='loading';
+   await ready;
+   if(live){await command('run',{});return;}
+   state='loading';
    const result=await generate(kind==='alfworld'?game.prompts([],[],null):game.prompt());
    const firstAction=parse(result.text);
    if(kind==='alfworld'){

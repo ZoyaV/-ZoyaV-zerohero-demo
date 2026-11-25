@@ -1,0 +1,12 @@
+{
+  "repo_id": "eteron/ZeroHero-WebShop-10M-PPO-RA",
+  "task": "webshop",
+  "method": "PPO-RA",
+  "parameters": 9983616,
+  "budget": 720896,
+  "budget_unit": "environment_decisions",
+  "source_file": "model.safetensors",
+  "source_sha256": "9d4cb0afd25f5ff1aa91603774c2f3918cbb7ea28cf98dce0831eb0e2d1ac2c0",
+  "export": "policy only; exact source tensor equality verified",
+  "rotary_config": "rope_theta=10000; default RoPE; 4.57.1 serialization"
+}

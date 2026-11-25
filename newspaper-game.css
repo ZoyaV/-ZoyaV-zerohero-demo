@@ -1,0 +1,146 @@
+:root.paper-game {
+  color-scheme: light;
+  --bg: #f6f3eb;
+  --surface: #ece7dc;
+  --operator-surface: #eee8d7;
+  --text: #24231f;
+  --muted: #524d44;
+  --mint: #265141;
+  --lavender: #693f58;
+  --line: #979186;
+  --accent: #923426;
+  --control-size: 52px;
+  --panel-radius: 0px;
+}
+.paper-game .back-home,
+.paper-game .chat-divider,
+.paper-game .operator-settings,
+.paper-game #alfred-chat,
+.paper-game .minimap,
+.paper-game .kitchen-note,
+.paper-game .viewer-insets,
+.paper-game #agent-bubble[data-kind="question"],
+.paper-game #operator-bubble {
+  display: none;
+}
+.paper-game #robot-speech {
+  width: max-content;
+  max-width: min(240px, calc(100% - 96px));
+  padding: 6px 10px;
+  font: 600 14px/1.35 system-ui, sans-serif;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px #20332d24;
+}
+.paper-game #robot-speech[data-speaker="operator"] {
+  inset: auto 0 12px;
+  margin-inline: auto;
+  max-width: min(calc(100% - 20px), max(68%, 15rem));
+  padding: 6px 12px;
+  transform: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--bg);
+  color: var(--text);
+  font: 1rem/1.35 Georgia, serif;
+  text-align: center;
+}
+.paper-game #robot-speech[data-speaker="operator"]::after {
+  content: none;
+}
+.paper-game #action-overlay {
+  inset: auto 10px 8px;
+  width: fit-content;
+  max-width: calc(100% - 20px);
+  margin-inline: auto;
+  padding: 4px 10px;
+  color: var(--bg);
+  background: var(--text);
+  font: 700 13px/1.35 system-ui, sans-serif;
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+}
+.paper-game .layout,
+.paper-game .content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(230px, 34%);
+  grid-template-rows: minmax(0, 1fr);
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+.paper-game .content {
+  grid-template-columns: minmax(0, 1fr);
+}
+.paper-game .content .world {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+.paper-game .content #coin { display: none; }
+.paper-game .world { height: auto; min-height: 0; }
+.paper-game aside {
+  min-height: 0;
+  height: auto;
+  border-inline-start: 1px solid var(--line);
+  box-shadow: none;
+}
+.paper-game .world > .objective {
+  padding: 10px 14px 12px;
+  background: var(--text);
+  color: var(--bg);
+  border: 0;
+}
+.paper-game .world > .objective h1 { font: 1rem/1.45 Georgia, serif; }
+.paper-game .objective #result { display: contents; color: inherit; }
+.paper-game .objective #result-note { display: none; }
+.paper-game .objective #result-title,
+.paper-game .objective #error { margin-top: 4px; padding: 0; font: 600 13px/1.4 system-ui, sans-serif; }
+.paper-game .world > .objective strong {
+  display: block;
+  margin-block-end: 4px;
+  font: 700 .78rem/1.35 system-ui, sans-serif;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.paper-game .objective {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--paper, #f6f3eb);
+  color: var(--text);
+  box-shadow: none;
+}
+.paper-game .objective h1 { font-size: 14px; }
+.paper-game .world-controls { gap: 8px; }
+.paper-game #reply:has(textarea:disabled),
+.paper-game #alfred-chat form:has(textarea:disabled) { display: none; }
+.paper-game .chat-header, .paper-game .chat-history, .paper-game .chat-body { padding: 10px; }
+.paper-game :is(.message, #chat li) { border-radius: 0; box-shadow: none; }
+.paper-game :is(.message p, #chat li) { font-size: 14px; }
+.paper-game .composer { background: var(--surface); box-shadow: none; }
+.paper-game :is(textarea, #answer) { min-height: 36px; }
+.paper-game #demo-loading {
+  background: var(--bg);
+  color: var(--text);
+}
+.paper-game #demo-loading .loading-logo {
+  font: 700 clamp(28px, 9vw, 72px)/1 Georgia, serif;
+  color: var(--text);
+  -webkit-text-stroke: 0;
+}
+.paper-game #demo-loading .loading-fill { display: none; }
+.paper-game #demo-loading .loading-spinner {
+  border-color: #c6beb0;
+  border-top-color: var(--accent);
+  box-shadow: none;
+}
+@media (max-width: 700px) {
+  .paper-game .layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 54%) minmax(0, 46%);
+  }
+  .paper-game .layout aside {
+    border: 0;
+    border-top: 1px solid var(--line);
+  }
+}

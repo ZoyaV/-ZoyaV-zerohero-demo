@@ -25,5 +25,5 @@ export function chatMessages(snapshot) {
 }
 export function sceneAction(snapshot) {
   const action=snapshot.trace?.at(-1)?.action || snapshot.action || '';
-  return !action.startsWith('ask ') && action.length<=36 ? action.toUpperCase() : '';
+  return action.startsWith('ask ') ? '' : action.toUpperCase();
 }

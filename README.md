@@ -1,6 +1,6 @@
 # ZeroHero browser demo
 
-Static website for GitHub Pages. The two small Qwen3 agents run locally using ONNX Runtime Web (WASM, one worker thread, FP32). Three.js renders both worlds. Only the full language-model operator is external. No gameplay Python server is required.
+Static website for GitHub Pages. The research edition at index.html runs ALFWorld-Dialogue (5M), WebShop (10M), and visual Crafter (12.6M) in the browser using local ONNX weights. The shopping worker queries a browser-side storefront over the 1,000-item WebShop-Small catalog. The survival worker plays stock Crafter in Pyodide and autoregressively decodes each decision from its screen and memory. The previous game menu is available at menu.html, including the separate 13M Craftax navigator and its optional external operator. No gameplay Python server is required.
 
 ## Run locally
 

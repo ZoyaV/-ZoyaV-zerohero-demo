@@ -1,0 +1,19 @@
+{
+  "budget_multipliers": [1, 2, 4, 8, 16, 32],
+  "pretraining_success_percent": {
+    "5M": [0.8, 8.8, 18.4, 30.2, 34.4, 49.6],
+    "10M": [3.4, 10.8, 17.6, 31.0, 42.8, 56.8],
+    "50M": [1.8, 9.4, 14.8, 34.0, 46.4, 58.0]
+  },
+  "environment_steps": [10000, 30000, 50000, 70000, 90000, 110000, 130000, 150000, 170000, 190000, 210000, 230000, 250000, 270000, 290000, 310000, 330000, 350000, 370000, 390000, 410000, 430000, 450000, 470000, 490000, 510000, 530000, 550000, 570000, 590000, 610000, 630000, 650000, 667648],
+  "rollout_success_percent": {
+    "PPO": [19.95, 22.21, 24.95, 26.8, 25.05, 27.9, 26.42, 24.45, 29.74, 27.7, 27.95, 30.15, 31.68, 31.0, 31.47, 32.65, 37.95, 39.72, 43.32, 38.37, 39.35, 31.32, 41.55, 38.74, 43.63, 45.0, 46.6, 44.89, 50.89, 51.33, 49.16, 50.13, 45.95, 50.0],
+    "PPO-RA": [30.74, 35.85, 37.15, 42.54, 44.26, 46.23, 47.08, 47.67, 45.15, 48.95, 51.82, 49.33, 52.03, 52.59, 55.31, 57.33, 58.12, 58.36, 59.92, 59.9, 59.18, 59.56, 60.53, 61.49, 61.52, 62.2, 63.0, 63.64, 64.11, 65.27, 65.93, 65.06, 65.62, 67.15]
+  },
+  "expert_reference_percent": 70,
+  "sources": {
+    "pretraining": "ZeroHero arXiv manuscript, Learning from Expert Trajectories, and rq1-data-scaling.pdf, WebShop panel. Absolute success reconstructed from the plotted percentage-point gains and the reported final rates of 49.6%, 56.8% and 58.0%. Corpus ranges from 1,390 to 42,579 expert decisions.",
+    "rollouts": "Logged WebShop/PPO and WebShop/PPO-RA series behind rq2-posttraining.pdf. Unsmoothed mean of the logged rollout success rates within 20,000-environment-step bins, up to the common endpoint of 667,648 steps. Positions and rates checked against the unsmoothed vector paths in the published WebShop panel. The final partial bin is drawn at the common endpoint, as in the paper. Rates are percentages rounded to two decimals.",
+    "expert": "ZeroHero arXiv manuscript, Reinforcement Learning After Pretraining and rq2-posttraining.pdf. The paper uses a reference of 70% for the GiGPO-trained Qwen2.5-7B expert on the simplified WebShop task."
+  }
+}

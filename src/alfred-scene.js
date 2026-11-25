@@ -124,8 +124,17 @@ export function createKitchen(canvas, toggle, hint) {
     appliedStep=snapshot.step;
     toggle.disabled=false;toggle.setAttribute('aria-label','Switch between room overview and following the robot');
     toggle.setAttribute('aria-pressed',String(following));hint.textContent=following?'Room overview':'Follow robot';
-    const question=snapshot.action?.startsWith('ask ')&&!snapshot.trace?.at(-1)?.result?(snapshot.pending?.question||snapshot.action.slice(4)):'';
-    speech.textContent=question;speech.hidden=!question;
+    const turn = snapshot.trace?.at(-1);
+    const question = snapshot.action?.startsWith('ask ') && !turn?.result
+      ? snapshot.pending?.question || snapshot.action.slice(4) : '';
+    const reply = newspaper && turn?.result === 'question' && turn.answer;
+    speech.dataset.speaker = reply ? 'operator' : 'agent';
+    if (reply) {
+      speech.style.removeProperty('left');
+      speech.style.removeProperty('top');
+    }
+    speech.textContent = reply ? `Operator: ${reply}` : question;
+    speech.hidden = !speech.textContent;
     const changed=episode!==snapshot.episode_id;
     if(changed){episode=snapshot.episode_id;build(snapshot.objects);initialized=false;route=[];station=null;}
     const desired=snapshot.agent.location;
@@ -160,7 +169,18 @@ export function createKitchen(canvas, toggle, hint) {
   camera.position.set(12,12,16);controls.target.set(0,.6,-1);
   const preview=document.createElement('canvas');preview.width=preview.height=256;preview.style.cssText='width:100%;height:100%;object-fit:cover';toggle.prepend(preview);
   const previewContext=preview.getContext('2d');
-  const observer=new ResizeObserver(()=>{const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);composer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();});observer.observe(canvas);
+  const newspaper = document.documentElement.classList.contains('paper-game');
+  const observer = new ResizeObserver(() => {
+    const { clientWidth: width, clientHeight: height } = canvas;
+    if (!width || !height) return;
+    renderer.setSize(width, height, false);
+    composer.setSize(width, height);
+    camera.aspect = width / height;
+    // Keep the room in frame as the newspaper column narrows.
+    if (newspaper) camera.zoom = Math.min(1, camera.aspect / 1.18);
+    camera.updateProjectionMatrix();
+  });
+  observer.observe(canvas);
   let previewAt=0;
   function frame(now){
     const dt=Math.min((now-last)/1000,.05);last=now;
@@ -186,15 +206,16 @@ export function createKitchen(canvas, toggle, hint) {
     else controls.update();
     for(const sprite of labels){const pos=new THREE.Vector3();sprite.getWorldPosition(pos);const near=pos.distanceTo(robot.position)<4;sprite.visible=near&&following;}
 
-    if(!speech.hidden){
+    if(!speech.hidden && speech.dataset.speaker !== 'operator'){
       const head=robot.position.clone().add(new THREE.Vector3(0,2.25,0)).project(camera);
       const width=canvas.clientWidth,height=canvas.clientHeight;
       const half=speech.offsetWidth/2;
-      speech.style.left=`${Math.max(half+16,Math.min(width-half-16,(head.x*.5+.5)*width))}px`;
+      const rightInset = newspaper ? 80 : 16;
+      speech.style.left=`${Math.max(half+16,Math.min(width-half-rightInset,(head.x*.5+.5)*width))}px`;
       speech.style.top=`${Math.max(speech.offsetHeight+22,Math.min(height-20,(-head.y*.5+.5)*height))}px`;
     }
     composer.render();
-    if(now-previewAt>600){previewAt=now;const pos=camera.position.clone(),q=camera.quaternion.clone();camera.position.set(0,16,9);camera.lookAt(0,0,-1);renderer.render(scene,camera);previewContext.drawImage(canvas,0,0,256,256);camera.position.copy(pos);camera.quaternion.copy(q);composer.render();}
+    if(now-previewAt>600&&toggle.clientWidth){previewAt=now;const pos=camera.position.clone(),q=camera.quaternion.clone();camera.position.set(0,16,9);camera.lookAt(0,0,-1);renderer.render(scene,camera);previewContext.drawImage(canvas,0,0,256,256);camera.position.copy(pos);camera.quaternion.copy(q);composer.render();}
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);

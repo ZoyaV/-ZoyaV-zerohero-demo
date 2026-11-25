@@ -162,7 +162,8 @@ function show(next,animate=false){
 }
 $('reset').onclick=follow;$('top').onclick=overview;
 const toggleView=()=>following?overview():follow();
-canvas.addEventListener('dblclick',toggleView);
+const paperGame=document.documentElement.classList.contains('paper-game');
+if(!paperGame)canvas.addEventListener('dblclick',toggleView);
 $('minimap').addEventListener('dblclick',toggleView);
 // Native button activation also exposes the same view to keyboard users.
 $('minimap').addEventListener('click',event=>{if(event.detail===0)toggleView();});
@@ -180,7 +181,8 @@ canvas.addEventListener('keydown',event=>{
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 new ResizeObserver(()=>{const {width,height}=canvas.getBoundingClientRect();renderer.setSize(width,height,false);composer?.setSize(width,height);camera.aspect=width/height;lens();$('operator-bubble').dataset.expanded='false';}).observe(canvas);
 show(data);
-follow();
+if(paperGame)overview();
+else follow();
 const focus=new THREE.Vector3();
 const bubbleAnchor=new THREE.Vector3();
 const sightline=new THREE.Raycaster(),sightDirection=new THREE.Vector3();
@@ -209,15 +211,17 @@ renderer.setAnimationLoop(time=>{
 
  if(!following)controls.update();sky.position.copy(camera.position);if(composer)composer.render();else renderer.render(scene,camera);
  // A second camera reuses this WebGL canvas; no extra renderer or scene copy.
- const mini=$('minimap'),size=mini.clientWidth;
- const miniX=mini.offsetLeft+mini.clientLeft,miniY=canvas.clientHeight-mini.offsetTop-mini.clientTop-mini.clientHeight;
- miniMarker.position.copy(robot.position);miniMarker.position.y=4;miniMarker.rotation.y=robot.rotation.y;
- for(const tree of trees)for(const part of tree.children){part.material.opacity=1;part.material.depthWrite=true;}
- const shadowUpdates=renderer.shadowMap.autoUpdate;renderer.shadowMap.autoUpdate=false;
- renderer.setScissorTest(true);renderer.setScissor(miniX,miniY,size,size);renderer.setViewport(miniX,miniY,size,size);
- renderer.setClearColor(0xa8c2b1,1);renderer.clearDepth();renderer.render(scene,miniCamera);
- renderer.setClearColor(0,0);renderer.shadowMap.autoUpdate=shadowUpdates;
- renderer.setScissorTest(false);renderer.setViewport(0,0,canvas.clientWidth,canvas.clientHeight);
+ if(!paperGame){
+  const mini=$('minimap'),size=mini.clientWidth;
+  const miniX=mini.offsetLeft+mini.clientLeft,miniY=canvas.clientHeight-mini.offsetTop-mini.clientTop-mini.clientHeight;
+  miniMarker.position.copy(robot.position);miniMarker.position.y=4;miniMarker.rotation.y=robot.rotation.y;
+  for(const tree of trees)for(const part of tree.children){part.material.opacity=1;part.material.depthWrite=true;}
+  const shadowUpdates=renderer.shadowMap.autoUpdate;renderer.shadowMap.autoUpdate=false;
+  renderer.setScissorTest(true);renderer.setScissor(miniX,miniY,size,size);renderer.setViewport(miniX,miniY,size,size);
+  renderer.setClearColor(0xa8c2b1,1);renderer.clearDepth();renderer.render(scene,miniCamera);
+  renderer.setClearColor(0,0);renderer.shadowMap.autoUpdate=shadowUpdates;
+  renderer.setScissorTest(false);renderer.setViewport(0,0,canvas.clientWidth,canvas.clientHeight);
+ }
  const bubble=$('agent-bubble'),reply=$('operator-bubble');
  if(!reply.hidden&&reply.dataset.expanded!=='true'&&$('operator-bubble-text').scrollHeight>$('operator-bubble-text').clientHeight+1)reply.dataset.expanded='true';
  for(const role of ['agent','operator']){

@@ -1,0 +1,19 @@
+{
+  "task": "webshop",
+  "temperature": 1.0,
+  "top_k": 0,
+  "top_p": 1.0,
+  "precision": "float32",
+  "context_tokens": 8192,
+  "max_new_tokens": 512,
+  "episode_decisions": 50,
+  "world_horizon": 2000,
+  "instructions": "You are shopping in a simulated store. Complete the user's shopping instruction.\nUse only information visible on the current page and in recent history.\nYou may search with search[keywords] or click with click[exact visible button, product ID, or option].\nChoose required options before clicking Buy Now. You can return with click[Back to Search].\nExplain your next decision briefly, then end with ACTION: followed by exactly one search[...] or click[...] action.",
+  "history": 4,
+  "setting": "small_synthetic",
+  "products": 1000,
+  "environment_seed": 1000,
+  "training_environment_seed": 0,
+  "environment_revision": "20bd331bdbc9026a5668e11362178e10ab7400c8",
+  "checkpoint_budget": 720896
+}
