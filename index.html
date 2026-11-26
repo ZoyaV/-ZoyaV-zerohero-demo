@@ -134,9 +134,7 @@
   .training-plots h4 { margin: 0 0 6px; font: 700 1.18rem/1.2 Georgia, serif; }
   :is(.capability-score, .training-plots) img { display: block; width: 100%; height: auto; }
   .training-plots figcaption { color: #504a42; font: .92rem/1.45 Georgia, serif; }
-  .webshop-demo { align-self: stretch; display: flex; flex-direction: column; }
-  .webshop-views { flex: 1; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--grid); }
-  .desk { position: relative; align-self: stretch; width: 100%; margin: 0; min-height: 0; aspect-ratio: 1.05; border: 1px solid var(--rule); overflow: hidden; background: #e9dfca; }
+  .desk { position: relative; align-self: stretch; width: 100%; margin: 0; min-height: 0; border: 1px solid var(--rule); overflow: hidden; background: #e9dfca; }
   .desk canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
   .desk-control {
     position: absolute; inset-block-end: 12px; inset-inline-end: 12px; z-index: 2;
@@ -153,20 +151,62 @@
   .desk-control span { margin-inline-start: 2px; }
   .monitor { position: absolute; inset: 8% 5% 17% 29%; display: flex; transform-origin: top left; }
   .monitor[data-mounted] { inset: 0 auto auto 0; }
-  .monitor-screen { position: relative; display: flex; flex: 1; flex-direction: column; min-height: 0; border-radius: 4px; overflow: hidden; background: var(--paper); }
-  .screen-broadcast { contain: size; min-block-size: 0; border: 1px solid var(--rule); border-radius: 0; }
-  .screen-broadcast .screen-content { min-block-size: 0; overflow-y: auto; scrollbar-gutter: stable; font-size: .92rem; }
-  .screen-broadcast .screen-bar, .screen-broadcast .screen-action { font-size: .84rem; }
-  .screen-bar, .screen-action, .screen-content { padding: 7px 9px; overflow-wrap: anywhere; }
-  .screen-bar, .screen-action { font: .81rem/1.4 "Courier New", monospace; }
-  .screen-bar { flex: none; background: #25332c; color: #fff5df; font-weight: 700; font-size: 20px; }
-  .screen-action { flex: none; max-block-size: 4.8em; overflow-y: auto; border-bottom: 1px solid var(--rule); color: var(--accent); font-size: 18px; }
-  .screen-content { flex: 1; overflow: auto; font-size: 20px; line-height: 1.2; }
-  .screen-content ul { list-style: none; margin: 0; padding: 0; }
-  .screen-content li + li { border-top: 1px solid #d5cbbc; margin-top: 5px; padding-top: 5px; }
-  .screen-content small { display: block; color: #615849; }
-  .screen-content li[data-product] { display: flow-root; min-height: 1.8em; }
-  .screen-content img { float: left; width: 48px; height: 48px; object-fit: contain; margin-right: 8px; mix-blend-mode: multiply; }
+  .monitor-screen {
+    position: relative; display: flex; flex: 1; flex-direction: column; min-height: 0; border-radius: 4px; overflow: hidden;
+    --store-green: #26483b;
+    --store-line: #dbdcd2;
+    --store-muted: #58615a;
+    color: #212c26;
+    background: #fffef9;
+    font: 14px/1.4 system-ui, sans-serif;
+  }
+  .screen-broadcast { contain: size; min-block-size: 0; border: 1px solid #aaa99b; border-radius: 7px; }
+  .screen-bar {
+    flex: none; display: flex; align-items: center; gap: 9px; padding: 7px 12px;
+    background: var(--store-green); color: #fffdf4; font: bold 19px/1.1 Georgia, serif;
+  }
+  .shop-brand-icon { flex: none; width: 18px; height: 20px; }
+  .screen-bar small { margin-inline-start: auto; font: 500 11px/1.3 system-ui, sans-serif; }
+  .screen-content {
+    position: relative; flex: 1; min-block-size: 0; padding: 12px; overflow: auto; overflow-wrap: anywhere;
+    scrollbar-width: thin; scrollbar-color: #abae9e transparent;
+  }
+  .screen-content:focus-visible { outline-offset: -3px; }
+  .shop-status { flex: none; display: flex; align-items: baseline; gap: 8px; padding: 7px 12px;
+    background: #f0eee3; border-block-start: 1px solid var(--store-line); font-size: 12px; }
+  .shop-status b { color: var(--store-muted); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
+  .screen-action { min-width: 0; max-block-size: 4.5em; overflow: auto; overflow-wrap: anywhere; }
+  .shop-view { display: grid; gap: 10px; }
+  .shop-heading, .shop-label, .shop-name, .shop-price { display: block; margin: 0; }
+  .shop-heading { font: 650 15px/1.25 system-ui, sans-serif; }
+  .shop-search { display: flex; align-items: baseline; gap: 9px; padding: 6px 10px; border: 1px solid #c9cdc1;
+    border-radius: 5px; color: #47554d; background: #f8f8f1; font-size: 13px; }
+  .shop-search::before { content: ''; flex: none; width: 14px; height: 14px; align-self: flex-start; margin-top: 2px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%2347554d' stroke-width='1.5'%3E%3Ccircle cx='5.5' cy='5.5' r='4'/%3E%3Cpath d='m8.5 8.5 4 4'/%3E%3C/svg%3E") center / contain no-repeat; }
+  .shop-products { display: grid; margin: 0; padding: 0; list-style: none; }
+  .shop-product { display: grid; grid-template-columns: 56px minmax(0, 1fr); align-items: center; gap: 11px; }
+  .shop-products .shop-product { padding-block: 9px; }
+  .shop-products .shop-product + .shop-product { border-block-start: 1px solid var(--store-line); }
+  .shop-thumb { position: relative; display: grid; place-items: center; aspect-ratio: 1;
+    overflow: hidden; border-radius: 5px; background: #f2f1e8; color: #747c70; }
+  .shop-thumb svg { width: 24px; height: 24px; }
+  .shop-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #fff; }
+  .shop-name { font: 650 14px/1.27 system-ui, sans-serif; }
+  .shop-price { margin-block-start: 3px; color: var(--store-green); font-size: 14px; font-weight: 700; }
+  .shop-options { min-inline-size: 0; }
+  .shop-label { margin-bottom: 5px; font-size: 12px; font-weight: 700; }
+  .shop-label::first-letter { text-transform: uppercase; }
+  .shop-values, .shop-nav { display: flex; flex-wrap: wrap; gap: 5px; }
+  .shop-chip, .shop-link, .shop-buy { max-inline-size: 100%; font-size: 12px; line-height: 1.4; }
+  .shop-chip { padding: 3px 7px; border: 1px solid #c7cdc2; border-radius: 4px; background: #fff; }
+  .shop-chip[data-selected], .shop-buy { background: var(--store-green); color: white; border-color: var(--store-green); }
+  .shop-nav { column-gap: 12px; }
+  .shop-link { color: var(--store-muted); text-decoration: underline; text-underline-offset: 2px; }
+  .shop-buy { justify-self: start; padding: 6px 12px; border-radius: 4px; font-weight: 650; }
+  .shop-view [data-current] { outline: 2px solid #a45328; outline-offset: 1px; }
+  .shop-facts { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; }
+  .shop-facts dt { color: var(--store-muted); text-transform: capitalize; }
+  .shop-facts dd { margin: 0; font-weight: 600; }
   .shop-cursor {
     position: absolute; top: 0; left: 0; pointer-events: none;
     width: 14px; height: 20px; background: #25231d;
@@ -175,9 +215,9 @@
     filter: drop-shadow(0 0 1px white);
   }
   @media (prefers-reduced-motion: reduce) { .shop-cursor { transition: none; } }
-  .webshop-assignment { margin-bottom: 8px; padding: 12px 16px 14px; background: var(--ink); color: var(--paper); }
-  .webshop-assignment h3 { margin-bottom: 6px; font: 700 .78rem/1.35 system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; }
-  .webshop-assignment p { overflow-wrap: anywhere; line-height: 1.45; }
+  .webshop-assignment { margin-block-end: 12px; padding: 13px 18px 15px; background: var(--ink); color: var(--paper); }
+  .webshop-assignment h3 { margin-bottom: 6px; color: #dbcfbb; font: 700 .7rem/1.35 system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+  .webshop-assignment p { overflow-wrap: anywhere; min-block-size: 3lh; font-size: 1.02rem; line-height: 1.35; }
   .agent-intro::before {
     --grid-ink: rgb(73 63 45 / 13%); inset-block: 0;
   }
@@ -241,20 +281,38 @@
     .spec-sheet { padding-block: 10px; }
     .agent-specs { row-gap: 3px; grid-template-columns: max-content minmax(0, 24ch); }
   }
-  @media (max-width: 900px) {
-    #webshop { grid-template: "lead" auto "demo" auto "score" auto / minmax(0, 1fr); }
-  }
   @media (max-width: 700px) {
     .agent-specs { column-gap: 12px; }
     .spec-sheet { width: 100%; }
     .capability-spread { grid-template: "lead" auto "demo" auto "score" auto / minmax(0, 1fr); }
     .training-plots { grid-template-columns: minmax(0, 1fr); }
     .desk-control { inline-size: 44px; block-size: 44px; inset-block-end: 8px; inset-inline-end: 8px; }
-    .screen-bar, .screen-action, .screen-content { font-size: 16px; padding: 4px 6px; }
   }
-  @media (max-width: 540px) {
-    .webshop-views { grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); }
-    .desk { min-block-size: clamp(210px, 58vw, 260px); }
+  #webshop {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    margin-inline: 0;
+    column-gap: clamp(16px, 1.8vw, 26px);
+  }
+  #webshop .lead { container-type: inline-size; }
+  #webshop-title { max-inline-size: none; font-size: clamp(2rem, 14cqi, 2.9rem); line-height: .99; }
+  #webshop .lead p { line-height: 1.45; }
+  @media (max-width: 990px) {
+    #webshop { grid-template: "lead" auto "demo" auto "score" auto / minmax(0, 1fr); }
+    #webshop .capability-score { max-inline-size: 32rem; }
+  }
+  .webshop-demo { align-self: start; container-type: inline-size; }
+  .webshop-views { gap: 12px; }
+  .webshop-views::before { content: none; }
+  @container (min-width: 33rem) {
+    .webshop-views {
+      grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+      grid-template-rows: clamp(17rem, 45cqi, 20rem);
+    }
+  }
+  @container (max-width: 33rem) {
+    .webshop-views { grid-template-columns: minmax(0, 1fr); }
+    .webshop-views .desk { aspect-ratio: 2.1; }
+    .webshop-views .screen-broadcast { block-size: 20rem; }
   }
 </style>
 <link rel="stylesheet" href="survive.css">
@@ -340,9 +398,9 @@
           <canvas id="webshop-desk" aria-hidden="true"></canvas>
           <div class="monitor" aria-hidden="true">
             <div class="monitor-screen">
-              <p class="screen-bar">WebShop</p>
-              <p class="screen-action">Waiting for the first action</p>
-              <div class="screen-content">The store opens when an episode starts.</div>
+              <p class="screen-bar"><svg class="shop-brand-icon" aria-hidden="true" viewBox="0 0 20 22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3 7h14l1 13H2L3 7Z"/><path d="M7 9V5a3 3 0 0 1 6 0v4"/></svg>WebShop</p>
+              <div class="screen-content">The shopper’s store will appear here.</div>
+              <div class="shop-status"><b>Agent</b><p class="screen-action">Ready to start</p></div>
               <span class="shop-cursor" hidden></span>
             </div>
           </div>
@@ -352,9 +410,9 @@
           </button>
         </figure>
         <section class="monitor-screen screen-broadcast" aria-labelledby="terminal-title">
-          <h3 class="screen-bar" id="terminal-title">Agent’s screen</h3>
-          <p class="screen-action" id="shop-action" role="status">Waiting for the first action</p>
-          <div class="screen-content" id="shop-page" tabindex="0" aria-label="Current store screen">The store opens when an episode starts.</div>
+          <h3 class="screen-bar" id="terminal-title"><svg class="shop-brand-icon" aria-hidden="true" viewBox="0 0 20 22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3 7h14l1 13H2L3 7Z"/><path d="M7 9V5a3 3 0 0 1 6 0v4"/></svg>WebShop <small>Agent’s browser</small></h3>
+          <div class="screen-content" id="shop-page" tabindex="0" aria-label="Current store screen">The shopper’s store will appear here.</div>
+          <div class="shop-status"><b>Agent</b><p class="screen-action" id="shop-action" role="status">Ready to start</p></div>
           <span class="shop-cursor" aria-hidden="true" hidden></span>
         </section>
       </div>

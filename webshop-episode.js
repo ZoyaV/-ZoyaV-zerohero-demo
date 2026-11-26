@@ -20,82 +20,158 @@ let worker;
 let generation = 0;
 let decisionQueue = Promise.resolve();
 
-function describe(action) {
-  const match = /^(search|click)\[(.*)\]$/is.exec(action);
-  if (!match) return action;
-  return match[1].toLowerCase() === 'search' ? `Search · ${match[2]}` : `Click · ${match[2]}`;
+function element(tag, className, text) {
+  const node = document.createElement(tag);
+  node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
 }
 
-function productImage(url) {
-  if (typeof url !== 'string' || !url.startsWith('https://m.media-amazon.com/images/')) return;
-  const image = document.createElement('img');
-  image.src = url;
-  image.alt = '';
-  image.referrerPolicy = 'no-referrer';
-  return image;
+function target(node, value) {
+  node.dataset.shopTarget = value;
+  return node;
 }
 
-function renderPage({observation, product_images: images, product, outcome}) {
-  const samePage = observation === displayedPage;
-  displayedPage = observation;
-  const lines = observation.split(/\s*\[SEP\]\s*|\r?\n/).map(line => line.trim()).filter(Boolean);
-  if (outcome === 'checkout' && product) {
-    lines.splice(0, lines.length, 'Thank you for shopping with us!', product.title,
-      ...Object.entries(product.options).map(([label, value]) => `${label}: ${value}`),
-      'Price: ' + product.price);
+const dollars = new Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD'});
+
+function productCard(product, result = false) {
+  const card = element(result ? 'li' : 'div', 'shop-product');
+  if (result) target(card, product.asin);
+  const thumb = element('span', 'shop-thumb');
+  thumb.setAttribute('aria-hidden', 'true');
+  thumb.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="m3 7 9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10M7.5 5l9 4"/></svg>';
+  if (product.image?.startsWith('https://m.media-amazon.com/images/')) {
+    const image = document.createElement('img');
+    image.src = product.image;
+    image.alt = '';
+    image.referrerPolicy = 'no-referrer';
+    thumb.append(image);
   }
-  const list = document.createElement('ul');
-  const hasResults = lines.some(line => /^Page \d+.*Total results/i.test(line));
-  for (let index = 0; index < lines.length; index++) {
-    const line = lines[index];
-    if (line === 'Instruction:') {
-      index++;
-      continue;
+  const summary = element('div', 'shop-summary');
+  const price = product.Price.replace(/\$([\d.]+)/g, (_, amount) => dollars.format(Number(amount)));
+  summary.append(element('strong', 'shop-name', product.Title), element('span', 'shop-price', price));
+  card.append(thumb, summary);
+  return card;
+}
+
+function navigation(links) {
+  const nav = element('div', 'shop-nav');
+  for (const [action, label] of links) nav.append(target(element('span', 'shop-link', label), action));
+  return nav;
+}
+
+const backToSearch = ['Back to Search', 'New search'];
+const sections = ['Description', 'Features', 'Reviews', 'Attributes'];
+
+function renderPage(state) {
+  const {mode, query, item, selected, outcome} = state;
+  const view = element('div', 'shop-view');
+  view.dataset.mode = outcome === 'checkout' ? outcome : mode;
+  if (view.dataset.mode === 'checkout') {
+    view.append(element('h4', 'shop-heading', 'Order placed'), productCard(item));
+    const facts = element('dl', 'shop-facts');
+    for (const [name, value] of Object.entries(selected)) {
+      facts.append(element('dt', 'shop-label', name), element('dd', 'shop-value', value));
     }
-    if (line.startsWith('Instruction:')) continue;
-    const item = document.createElement('li');
-    item.dataset.shopTarget = line;
-    if (hasResults && /^B[0-9A-Z]{9}$/i.test(line) && index + 2 < lines.length) {
-      item.dataset.product = '';
-      const image = productImage(images[line]);
-      if (image) item.append(image);
-      const title = document.createElement('strong');
-      title.textContent = lines[index + 1];
-      const metadata = document.createElement('small');
-      metadata.textContent = `${lines[index + 2]} · ${line}`;
-      item.append(title, metadata);
-      index += 2;
-    } else {
-      if (product && line === product.title) {
-        item.dataset.product = '';
-        const image = productImage(images[product.asin]);
-        if (image) item.append(image);
+    view.append(facts);
+  } else if (mode === 'search' || mode === 'results') {
+    view.append(element('h4', 'shop-heading', mode === 'search' ? 'Search the store' : 'Search results'));
+    const searchBox = element('div', 'shop-search', query || 'Search products');
+    if (mode === 'search') target(searchBox, 'Search');
+    view.append(searchBox);
+    if (mode === 'results') {
+      const pageCount = Math.ceil(state.total / 10);
+      const meta = 'Total results · ' + state.total + (pageCount ? '   /   Page ' + (state.page + 1) + ' of ' + pageCount : '');
+      view.append(element('p', 'shop-label', meta));
+      const products = element('ul', 'shop-products');
+      for (const product of state.results) products.append(productCard(product, true));
+      view.append(products);
+      const links = [backToSearch];
+      if (state.page) links.push(['< Prev', 'Previous page']);
+      if (state.page + 1 < pageCount) links.push(['Next >', 'Next page']);
+      view.append(navigation(links));
+    }
+  } else {
+    view.append(productCard(item));
+    if (mode === 'product') {
+      for (const [name, values] of Object.entries(item.options)) {
+        const group = element('div', 'shop-options');
+        group.append(element('h4', 'shop-label', name));
+        const choices = element('div', 'shop-values');
+        for (const value of values) {
+          const active = selected[name] === value;
+          const chip = target(element('span', 'shop-chip', (active ? '✓ ' : '') + value), value);
+          chip.toggleAttribute('data-selected', active);
+          choices.append(chip);
+        }
+        group.append(choices);
+        view.append(group);
       }
-      const selected = product && Object.values(product.options).includes(line.toLowerCase());
-      item.append(selected ? '✓ ' + line : line);
+      view.append(target(element('span', 'shop-buy', 'Buy now'), 'Buy Now'));
+      view.append(navigation(sections.map(label => [label, label])));
+    } else {
+      const heading = sections.find(label => label.toLowerCase() === mode);
+      view.append(element('h4', 'shop-heading', heading));
+      const details = {description:[item.Description], features:item.BulletPoints,
+        attributes:item.Attributes, reviews:[]}[mode].filter(Boolean);
+      for (const line of details) view.append(element('p', 'shop-detail', line));
+      if (!details.length) view.append(element('p', 'shop-detail', 'No ' + mode + ' available.'));
     }
-    list.append(item);
+    view.append(navigation([['< Prev', mode === 'product' ? 'Back to results' : 'Back to product'], backToSearch]));
   }
-  for (const {page} of screens) {
-    const scroll = samePage ? page.scrollTop : 0;
-    page.replaceChildren(list.cloneNode(true));
+
+  for (const {page, cursor} of screens) {
+    const scroll = state.observation === displayedPage ? page.scrollTop : 0;
+    page.replaceChildren(view.cloneNode(true));
     page.scrollTop = scroll;
+    cursor.hidden = true;
   }
+  displayedPage = state.observation;
 }
 
-function showAction(action) {
+function showAction(action, state) {
   if (action) desk.dispatchEvent(new CustomEvent('webshop-action', {detail: action}));
-  const click = /^click\[(.*)\]$/i.exec(action || '');
-  for (const {page, action: actionLine, cursor} of screens) {
-    const candidate = click && [...page.querySelectorAll('[data-shop-target]')]
-      .find(item => item.dataset.shopTarget.toLowerCase() === click[1].toLowerCase());
-    const target = candidate || actionLine;
-    if (candidate) page.scrollTop = Math.max(0, candidate.offsetTop - page.offsetTop - 12);
-    const x = target.offsetLeft + Math.min(target.offsetWidth / 2, 35);
-    const y = target.offsetTop + target.offsetHeight / 2 - (candidate ? page.scrollTop : 0);
-    cursor.hidden = !action;
+  const match = /^(click|search)\[(.*)\]$/is.exec(action || '');
+  const searching = match?.[1].toLowerCase() === 'search';
+  const value = match?.[2].trim() || '';
+  const key = searching ? 'search' : value.toLowerCase();
+  const option = Object.entries(state.item?.options || {}).find(([, values]) =>
+    values.some(option => option.toLowerCase() === key));
+  const result = state.results.find(item => item.asin.toLowerCase() === key);
+  let label = 'Choosing a store action';
+  if (searching) label = 'Searching the catalogue';
+  else if (option) label = 'Choosing ' + option[0] + ' · ' + value;
+  else if (result) label = 'Opening product';
+  else if (key === 'buy now') label = 'Placing order';
+  else if (sections.some(section => section.toLowerCase() === key)) label = 'Reading ' + key;
+  else if (key === 'back to search') label = 'Returning to search';
+  else if (key === '< prev') label = 'Going back';
+  else if (key === 'next >') label = 'Opening next page';
+  let found = false;
+  for (const {page, cursor} of screens) {
+    const candidate = value && (searching || key !== 'search') && [...page.querySelectorAll('[data-shop-target]')]
+      .find(node => node.dataset.shopTarget.toLowerCase() === key);
+    cursor.hidden = !candidate;
+    if (!candidate) continue;
+    found = true;
+    if (searching) candidate.textContent = value;
+    candidate.setAttribute('data-current', '');
+
+    // Layout offsets stay in screen pixels even inside the transformed desk monitor.
+    let left = 0, top = 0;
+    for (let node = candidate; node && node !== page; node = node.offsetParent) {
+      left += node.offsetLeft;
+      top += node.offsetTop;
+    }
+    if (top < page.scrollTop || candidate.offsetHeight >= page.clientHeight) page.scrollTop = top - 6;
+    else if (top + candidate.offsetHeight > page.scrollTop + page.clientHeight) {
+      page.scrollTop = Math.max(top - page.clientHeight + candidate.offsetHeight + 6, 0);
+    }
+    const x = page.offsetLeft + left + Math.min(candidate.offsetWidth / 2, 16);
+    const y = page.offsetTop + top - page.scrollTop + Math.min(candidate.offsetHeight / 2, 14);
     cursor.style.transform = `translate(${x}px, ${y}px)`;
   }
+  status(found ? label : searching ? 'Search unavailable on this page' : 'Action unavailable on this page');
 }
 
 function status(text) {
@@ -161,14 +237,17 @@ async function shop() {
     while (!state.done) {
       const action = await decide(state, history, run);
       if (run !== generation) return;
-      status(describe(action));
-      showAction(action);
+      showAction(action, state);
       history.push({observation: state.observation, action});
       const [next] = await Promise.all([store.step(action), wait(reducedMotion.matches ? 0 : 650)]);
       if (run !== generation) return;
       state = next;
       renderPage(state);
-      if (!state.done) await wait(800);
+      if (!state.done) {
+        status({search:'Preparing a search', results:'Reviewing search results',
+          product:'Reviewing product'}[state.mode] || 'Reading ' + state.mode);
+        await wait(800);
+      }
       if (run !== generation) return;
     }
     desk.dataset.running = 'false';

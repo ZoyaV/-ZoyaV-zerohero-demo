@@ -36,7 +36,7 @@ export async function openStore() {
   catalog ??= loadCatalog().catch(error=>{catalog=null;throw error});
   const {goals,search}=await catalog;
   const goal=goals[nextGoal++ % goals.length];
-  let results=[], page=0, mode='search', item, options={}, turn=0, done=false;
+  let query='', results=[], page=0, mode='search', item, options={}, turn=0, done=false;
   const state={instruction:goal.instruction_text,product_images:{}};
   const visible=()=>results.slice(page*10,(page+1)*10);
   function observation() {
@@ -59,16 +59,17 @@ export async function openStore() {
       else lines.push('Reviews');
     }
     return {...state,turn,done,observation:lines.join(' [SEP] '),
-      product:item && {asin:item.asin,title:item.Title,price:item.Price,options:{...options}}};
+      mode, query, page, total:results.length, results:mode==='results' ? visible() : [],
+      item, selected:{...options}};
   }
   function step(action) {
     if(done) throw Error('Shopping episode is complete.');
     const match=/^(search|click)\[([^\]]+)\]$/i.exec(action);
     const value=match?.[2].trim().toLowerCase();
     if(match?.[1]==='search' && mode==='search') {
-      results=search(value); page=0; mode='results';
+      query=match[2].trim(); results=search(value); page=0; mode='results';
     } else if(match?.[1]==='click') {
-      if(value==='back to search') {mode='search';item=null;options={};}
+      if(value==='back to search') {mode='search';query='';item=null;options={};}
       else if(mode==='results') {
         if(value==='next >' && (page+1)*10<results.length) page++;
         else if(value==='< prev' && page) page--;
