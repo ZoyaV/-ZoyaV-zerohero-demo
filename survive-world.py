@@ -29,12 +29,27 @@ def reset(seed):
 def screen():
     return pixels.tobytes()
 
+def mark_facing(scene, player):
+    """Paint a small gold chevron just outside the robot's 16-pixel tile."""
+    if player.sleeping:
+        return
+    dx, dy = player.facing
+    cx, cy = scene.shape[1] // 2, scene.shape[0] // 2
+    for along in range(5):
+        for across in range(along - 4, 5 - along):
+            x = cx + (9 + along) * dx - across * dy
+            y = cy + (9 + along) * dy + across * dx
+            edge = along == 0 or abs(across) == 4 - along
+            scene[y, x] = (62, 45, 26) if edge else (255, 205, 71)
+
+
 def frame():
     rng = env._world.random.get_state()
     try:
         scene = view(env._player, np.array([16,16])).transpose(1,0,2)
     finally:
         env._world.random.set_state(rng)
+    mark_facing(scene, env._player)
     return json.dumps(dict(turn=turn,image=png(scene),focus=png(pixels),
         achievements=env._player.achievements, inventory=env._player.inventory),default=int)
 
