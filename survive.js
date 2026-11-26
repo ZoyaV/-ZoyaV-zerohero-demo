@@ -63,19 +63,35 @@ function render(frame) {
   }
 }
 let worker;
+let failed = false;
+function fail(error) {
+  console.error('Survive worker:', error);
+  worker?.terminate();
+  worker = null;
+  failed = true;
+  pending = false;
+  shown = '';
+  clearTimeout(timer);
+  clearInterval(wordsTimer);
+  const retry = document.createElement('button');
+  retry.type = 'button';
+  retry.textContent = 'Try again';
+  retry.onclick = () => { failed = false; poll(); };
+  action.replaceChildren('Could not start the visual policy. ', retry);
+}
 function poll() {
-  if (pending || !visible || document.hidden) return;
+  if (failed || pending || !visible || document.hidden) return;
   if (!worker) {
     action.textContent = 'Loading the world on this device…';
-    worker = new Worker(new URL('survive-worker.js', import.meta.url), {type:'module'});
+    try { worker = new Worker(new URL('survive-worker.js', import.meta.url), {type:'module'}); } catch (error) { fail(error); return; }
     worker.onmessage = ({data}) => {
       if (data.status) { action.textContent = data.status; return; }
       pending = false;
-      if (data.error) { action.textContent = 'Could not run the visual policy. Reload to retry.'; console.error(data.error); return; }
+      if (data.error) { fail(data.error); return; }
       render(data.frame);
       timer = setTimeout(poll, 2000);
     };
-    worker.onerror = () => { pending = false; action.textContent = 'Could not load the visual policy. Reload to retry.'; };
+    worker.onerror = event => fail(event.message || 'Worker script failed to load');
   }
   pending = true;
   worker.postMessage('step');
